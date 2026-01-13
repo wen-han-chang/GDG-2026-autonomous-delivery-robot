@@ -48,3 +48,7 @@ dist/
 # ESP32 / PlatformIO
 # ======================
 .p
+gemini.md
+progress_report.md
+knowledge_base.md
+frontend.md

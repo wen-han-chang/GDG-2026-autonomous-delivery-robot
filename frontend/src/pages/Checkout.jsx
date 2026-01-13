@@ -9,6 +9,7 @@ export default function Checkout() {
     const [selectedNode, setSelectedNode] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [submitted, setSubmitted] = useState(false)
 
     const items = useCartStore((state) => state.items)
     const getTotal = useCartStore((state) => state.getTotal)
@@ -40,6 +41,7 @@ export default function Checkout() {
             // MVP: 假設店家在 A 點，配送到使用者選的節點
             const order = await createOrder('campus_demo', 'A', selectedNode)
             setOrder(order)
+            setSubmitted(true)
             clearCart()
             navigate(`/tracking/${order.order_id}`)
         } catch (err) {
@@ -50,7 +52,8 @@ export default function Checkout() {
         }
     }
 
-    if (items.length === 0) {
+    // Only redirect to cart if not submitted and cart is empty
+    if (!submitted && items.length === 0) {
         navigate('/cart')
         return null
     }
@@ -67,8 +70,8 @@ export default function Checkout() {
                         <label
                             key={node.id}
                             className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${selectedNode === node.id
-                                    ? 'border-orange-500 bg-orange-50'
-                                    : 'border-gray-200 hover:border-orange-300'
+                                ? 'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-orange-300'
                                 }`}
                         >
                             <input
