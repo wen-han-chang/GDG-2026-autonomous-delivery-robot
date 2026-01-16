@@ -111,3 +111,9 @@ def get_order(order_id: str):
 # WebSocket
 # ===============================
 app.include_router(ws_router)
+from .routers import stores, products, auth, users
+
+app.include_router(stores.router)
+app.include_router(products.router)
+app.include_router(auth.router)
+app.include_router(users.router)
