@@ -1,0 +1,32 @@
+[
+    {
+        "id": "S001",
+        "name": "讚野烤肉飯",
+        "description": "新鮮食材，現點現做",
+        "category": "餐廳",
+        "rating": 4.5,
+        "deliveryTime": "5-10 分鐘",
+        "image": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop",
+        "location_node": "A"
+    },
+    {
+        "id": "S002",
+        "name": "台灣第二味",
+        "description": "台灣味手搖飲",
+        "category": "飲料",
+        "rating": 4.8,
+        "deliveryTime": "3-5 分鐘",
+        "image": "https://images.unsplash.com/photo-1558857563-b371033873b8?w=400&h=300&fit=crop",
+        "location_node": "A"
+    },
+    {
+        "id": "S003",
+        "name": "8-11便利商店",
+        "description": "24小時全年無休",
+        "category": "便利商店",
+        "rating": 4.2,
+        "deliveryTime": "5-8 分鐘",
+        "image": "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&h=300&fit=crop",
+        "location_node": "X1"
+    }
+]

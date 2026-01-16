@@ -1,37 +1,66 @@
 [
     {
         "id": "P001",
+        "store_id": "S001",
         "name": "招牌便當",
         "price": 80,
         "description": "主菜 + 三樣配菜 + 白飯",
-        "image": "/images/bento.jpg"
+        "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop"
     },
     {
         "id": "P002",
+        "store_id": "S001",
         "name": "雞腿便當",
         "price": 100,
         "description": "酥炸雞腿 + 三樣配菜 + 白飯",
-        "image": "/images/chicken.jpg"
+        "image": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400&h=300&fit=crop"
     },
     {
         "id": "P003",
+        "store_id": "S001",
         "name": "排骨便當",
         "price": 90,
         "description": "香酥排骨 + 三樣配菜 + 白飯",
-        "image": "/images/pork.jpg"
+        "image": "https://images.unsplash.com/photo-1432139509613-5c4255815697?w=400&h=300&fit=crop"
     },
     {
         "id": "P004",
+        "store_id": "S002",
         "name": "紅茶",
         "price": 25,
         "description": "古早味紅茶 500ml",
-        "image": "/images/tea.jpg"
+        "image": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=300&fit=crop"
     },
     {
         "id": "P005",
+        "store_id": "S002",
         "name": "綠茶",
         "price": 25,
         "description": "無糖綠茶 500ml",
-        "image": "/images/greentea.jpg"
+        "image": "https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?w=400&h=300&fit=crop"
+    },
+    {
+        "id": "P006",
+        "store_id": "S002",
+        "name": "珍珠奶茶",
+        "price": 35,
+        "description": "香濃珍珠奶茶 500ml",
+        "image": "https://images.unsplash.com/photo-1558857563-b371033873b8?w=400&h=300&fit=crop"
+    },
+    {
+        "id": "P007",
+        "store_id": "S003",
+        "name": "泡麵",
+        "price": 35,
+        "description": "經典牛肉麵",
+        "image": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=300&fit=crop"
+    },
+    {
+        "id": "P008",
+        "store_id": "S003",
+        "name": "餅乾",
+        "price": 45,
+        "description": "綜合餅乾組合包",
+        "image": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&h=300&fit=crop"
     }
 ]
