@@ -5,14 +5,17 @@ export default function ProductCard({ product }) {
 
     return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="h-40 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                <span className="text-6xl">
-                    {product.name.includes('便當') ? '🍱' :
-                        product.name.includes('雞') ? '🍗' :
-                            product.name.includes('排骨') ? '🥩' :
-                                product.name.includes('紅茶') ? '🧋' :
-                                    product.name.includes('綠茶') ? '🍵' : '📦'}
-                </span>
+            <div className="h-40 bg-gray-200 overflow-hidden">
+                <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.parentElement.classList.add('flex', 'items-center', 'justify-center', 'bg-gradient-to-br', 'from-orange-100', 'to-orange-200')
+                        e.target.parentElement.innerHTML = '<span class="text-6xl">📦</span>'
+                    }}
+                />
             </div>
             <div className="p-4">
                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
