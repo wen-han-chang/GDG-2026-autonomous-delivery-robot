@@ -67,10 +67,3 @@ mosquitto_pub -h <MQTT_HOST> -t car/cmd -m "{\"cmd\":\"right\"}"
 mosquitto_pub -h <MQTT_HOST> -t car/cmd -m "{\"cmd\":\"stop\"}"
 ```
 
-## Troubleshooting
-
-* If turn never stops: check whether black line outputs HIGH or LOW (`BLACK_IS_HIGH`)
-* If car keeps moving when backend stops: check CMD timeout setting
-
-```
-
