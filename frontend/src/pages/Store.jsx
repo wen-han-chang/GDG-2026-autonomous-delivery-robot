@@ -10,14 +10,12 @@ export default function Store() {
 
     useEffect(() => {
         Promise.all([
-            fetch('/stores.json').then(res => res.json()),
-            fetch('/products.json').then(res => res.json())
+            fetch(`/api/stores/${storeId}`).then(res => res.json()),
+            fetch(`/api/stores/${storeId}/products`).then(res => res.json())
         ])
-            .then(([stores, allProducts]) => {
-                const foundStore = stores.find(s => s.id === storeId)
-                setStore(foundStore)
-                const storeProducts = allProducts.filter(p => p.store_id === storeId)
-                setProducts(storeProducts)
+            .then(([storeData, productsData]) => {
+                setStore(storeData)
+                setProducts(productsData)
                 setLoading(false)
             })
             .catch(err => {

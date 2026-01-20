@@ -9,7 +9,7 @@ export default function Home() {
     const categories = ['全部', '餐廳', '飲料', '便利商店']
 
     useEffect(() => {
-        fetch('/stores.json')
+        fetch('/api/stores')
             .then(res => res.json())
             .then(data => {
                 setStores(data)
@@ -46,8 +46,8 @@ export default function Home() {
                         key={category}
                         onClick={() => setSelectedCategory(category)}
                         className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-colors cursor-pointer ${selectedCategory === category
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         {category}

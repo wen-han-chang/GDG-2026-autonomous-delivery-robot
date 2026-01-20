@@ -5,6 +5,9 @@ import Store from './pages/Store'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Tracking from './pages/Tracking'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -17,6 +20,9 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/tracking/:orderId" element={<Tracking />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
     </BrowserRouter>
@@ -24,3 +30,4 @@ function App() {
 }
 
 export default App
+

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
 import { useOrderStore } from '../stores/orderStore'
+import { useAuthStore } from '../stores/authStore'
 import { createOrder } from '../api/orders'
 
 export default function Checkout() {
@@ -15,6 +16,7 @@ export default function Checkout() {
     const getTotal = useCartStore((state) => state.getTotal)
     const clearCart = useCartStore((state) => state.clearCart)
     const setOrder = useOrderStore((state) => state.setOrder)
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -50,6 +52,12 @@ export default function Checkout() {
         } finally {
             setLoading(false)
         }
+    }
+
+    // Redirect to login if not logged in
+    if (!isLoggedIn) {
+        navigate('/login')
+        return null
     }
 
     // Only redirect to cart if not submitted and cart is empty
