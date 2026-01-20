@@ -1,6 +1,10 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Literal
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Literal
+from datetime import datetime
 
+# ==========================================
+# 1. 地圖與機器人導航 (保留原本的)
+# ==========================================
 class Node(BaseModel):
     id: str
     x: float
@@ -38,3 +42,74 @@ class Telemetry(BaseModel):
     progress: float = Field(ge=0.0, le=1.0)
     speed: float = Field(gt=0.0)  # cm/s
     state: Literal["IDLE", "ASSIGNED", "MOVING", "ARRIVED"] = "MOVING"
+
+
+# ==========================================
+# 2. 商店與商品 (新增的)
+# ==========================================
+class StoreBase(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str
+    rating: float
+    deliveryTime: str
+    image: str
+    location_node: str
+
+class ProductBase(BaseModel):
+    id: str
+    store_id: str
+    name: str
+    price: int
+    description: str
+    image: str
+
+
+# ==========================================
+# 3. 使用者與認證 (Auth & User)
+# ==========================================
+# Token 相關
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+# 使用者基礎模型
+class UserBase(BaseModel):
+    email: EmailStr
+    name: str
+
+# 註冊用
+class UserCreate(UserBase):
+    password: str
+
+# 登入用
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+# 回傳給前端用 (不含密碼)
+class UserResponse(UserBase):
+    id: str
+    createdAt: str  # 前端是用 String (ISO format)
+
+# 修改資料用
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
+
+
+# ==========================================
+# 4. 訂單歷史
+# ==========================================
+class OrderHistoryItem(BaseModel):
+    id: str
+    date: str       # "2026-01-18"
+    store: str      # "讚野烤肉飯"
+    items: List[str] # ["招牌便當 x1", "紅茶 x2"]
+    total: int
+    status: str     # "已完成"

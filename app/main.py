@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from app.routers import stores, products, auth, users, cart
 from typing import Dict
 import uuid
 import json
@@ -11,6 +13,22 @@ from .ws import ws_router
 from .state import MAP_STORE, GRAPH_STORE, ORDER_STORE
 
 app = FastAPI(title="ESP32 Car Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # 開發階段允許所有來源
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- 掛載路由 (這是關鍵！) ---
+app.include_router(auth.router)      # 登入註冊
+app.include_router(users.router)     # 使用者資訊
+app.include_router(stores.router)    # 商店
+app.include_router(products.router)  # 商品
+app.include_router(ws_router)        # WebSocket
+# app.include_router(cart.router)    # 購物車 (如果你還沒建立 cart.py，這行先註解掉以免報錯)
 
 # ===============================
 # Server Startup Event
@@ -117,3 +135,7 @@ app.include_router(stores.router)
 app.include_router(products.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+
+@app.get("/")
+def read_root():
+    return {"message": "Autonomous Delivery Robot API is running!"}

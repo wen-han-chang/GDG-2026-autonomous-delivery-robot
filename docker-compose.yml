@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # 1. 資料庫服務 (新增的)
+  db:
+    image: postgres:15-alpine
+    container_name: robot-db
+    restart: always
+    environment:
+      - POSTGRES_USER=robot_user      # 帳號
+      - POSTGRES_PASSWORD=robot_pass  # 密碼
+      - POSTGRES_DB=robot_db          # 資料庫名稱
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # 👈 關鍵！這行讓資料永久保存
+    ports:
+      - "5432:5432" # 開放 Port 讓你用 DBeaver 或 pgAdmin 連線查看
+
+  # 2. 後端服務 (有修改)
+  backend:
+    build: .
+    container_name: robot-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - db # 確保資料庫先啟動
+    environment:
+      # 告訴後端資料庫在哪裡 (格式: postgresql://帳號:密碼@服務名稱:Port/資料庫名)
+      - DATABASE_URL=postgresql://robot_user:robot_pass@db:5432/robot_db
+
+  # 3. 前端服務 (沒變)
+  frontend:
+    build: ./frontend
+    container_name: robot-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_API_TARGET=http://backend:8000
+
+# 4. 定義磁碟區 (新增的)
+volumes:
+  postgres_data: # 這就是 Docker 幫你管理的硬碟空間
