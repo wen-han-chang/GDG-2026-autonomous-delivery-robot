@@ -11,11 +11,11 @@ services:
       - POSTGRES_PASSWORD=robot_pass
       - POSTGRES_DB=robot_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # <--- 關鍵 1：掛載路徑
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # <--- 我幫你打開了，這讓你可以用本機連進去測試 (Host Port: 5433)
+      - "5433:5432"
 
-  # 2. 後端服務
+  # 2. 後端服務 (這裡是修正重點)
   backend:
     build: .
     container_name: robot-backend
@@ -24,13 +24,9 @@ services:
     volumes:
       - .:/app
     depends_on:
-<<<<<<< HEAD
-      - db
-=======
-      - db # 確保資料庫先啟動
-    env_file:
+      - db            # 👈 保留：確保資料庫先啟動
+    env_file:         # 👈 新增：這是同學加的，用來讀取 .env 裡的 JWT 金鑰
       - .env
->>>>>>> 0d44fe25c659fffe92c63538daf3db0a381cefe3
     environment:
       - DATABASE_URL=postgresql://robot_user:robot_pass@db:5432/robot_db
 
@@ -51,4 +47,4 @@ services:
 
 # 4. 定義磁碟區
 volumes:
-  postgres_data:  
+  postgres_data:
