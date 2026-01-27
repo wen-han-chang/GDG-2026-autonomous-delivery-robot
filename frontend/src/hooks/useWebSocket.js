@@ -20,14 +20,18 @@ export function useWebSocket(orderId) {
         }
 
         ws.current.onmessage = (event) => {
-            const data = JSON.parse(event.data)
-            if (data.type === 'order_update' && data.order_id === orderId) {
-                setRobotState({
-                    node: data.node,
-                    progress: data.progress,
-                    speed: data.speed,
-                    state: data.state
-                })
+            try {
+                const data = JSON.parse(event.data)
+                if (data.type === 'order_update' && data.order_id === orderId) {
+                    setRobotState({
+                        node: data.node,
+                        progress: data.progress,
+                        speed: data.speed,
+                        state: data.state
+                    })
+                }
+            } catch (err) {
+                console.error('WebSocket 訊息解析失敗:', err)
             }
         }
 

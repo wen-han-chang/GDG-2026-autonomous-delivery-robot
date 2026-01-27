@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite' // 👈 1. 把這個加回來！
+import tailwindcss from '@tailwindcss/vite' 
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(), 
-    tailwindcss() // 👈 2. 把這個加回來！
+    tailwindcss() 
   ],
   server: {
     host: true, // 讓 Docker 外部能連線

@@ -1,15 +1,21 @@
+import os
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from dotenv import load_dotenv
 from app.models import UserCreate, UserLogin, UserResponse, Token
 from app.state import fake_users_db, fake_orders_db # 引入模擬資料庫
+
+load_dotenv()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # --- 設定 ---
-SECRET_KEY = "your_super_secret_key" # 之後記得改環境變數
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY 環境變數未設定")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # Token 有效期 1 天
 

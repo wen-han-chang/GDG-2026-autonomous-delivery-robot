@@ -25,6 +25,8 @@ services:
       - .:/app
     depends_on:
       - db # 確保資料庫先啟動
+    env_file:
+      - .env
     environment:
       # 告訴後端資料庫在哪裡 (格式: postgresql://帳號:密碼@服務名稱:Port/資料庫名)
       - DATABASE_URL=postgresql://robot_user:robot_pass@db:5432/robot_db

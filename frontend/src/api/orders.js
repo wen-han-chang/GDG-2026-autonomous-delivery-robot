@@ -15,10 +15,18 @@ export async function createOrder(mapId, fromNode, toNode, orderInfo = {}) {
             user_email: orderInfo.userEmail || null
         })
     })
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.detail || `HTTP ${res.status}`)
+    }
     return res.json()
 }
 
 export async function getOrder(orderId) {
     const res = await fetch(`${API_BASE}/orders/${orderId}`)
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.detail || `HTTP ${res.status}`)
+    }
     return res.json()
 }

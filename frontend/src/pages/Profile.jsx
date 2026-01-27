@@ -186,8 +186,7 @@ export default function Profile() {
                                     <div key={order.id} className="border border-gray-200 rounded-lg p-4">
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <span className="font-medium text-gray-800">{order.store}</span>
-                                                <span className="text-gray-400 text-sm ml-2">#{order.id}</span>
+                                                <span className="font-medium text-gray-800">#{order.id}</span>
                                             </div>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === '已完成'
                                                 ? 'bg-green-100 text-green-600'
