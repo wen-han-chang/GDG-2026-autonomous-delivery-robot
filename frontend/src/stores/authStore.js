@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-const API_BASE = '' // 直接呼叫後端路由，vite.config 已設定 proxy
+const API_BASE = '/api'
 
 export const useAuthStore = create(
     persist(

@@ -27,6 +27,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://robot_user:robot_pass@db:5432/robot_db
+      - ALLOWED_ORIGINS=http://localhost:5173,http://robot-frontend:5173
 
   # 3. 前端服務
   frontend:

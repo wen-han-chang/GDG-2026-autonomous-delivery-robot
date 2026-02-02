@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderStore } from '../stores/orderStore'
+import { useAuthStore } from '../stores/authStore'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { getOrder } from '../api/orders'
 import LiveMap from '../components/LiveMap'
@@ -18,7 +19,8 @@ export default function Tracking() {
         if (storedOrder && storedOrder.order_id === orderId) {
             return
         }
-        getOrder(orderId)
+        const token = useAuthStore.getState().token
+        getOrder(orderId, token)
             .then(data => setOrder(data))
             .catch(_err => console.error('Failed to load order:', _err))
     }, [orderId, storedOrder])

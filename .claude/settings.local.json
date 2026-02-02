@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx eslint src/stores/__tests__ src/api/__tests__)",
+      "Bash(dir /a \"C:\\\\Users\\\\user\\\\Desktop\\\\gdg\\\\autonomous-delivery-robot\\\\frontend\")",
+      "Bash(findstr:*)",
+      "Bash(npx eslint:*)",
+      "Bash(dir /b nul)"
+    ]
+  }
+}

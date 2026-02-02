@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+import os
 import uuid
 import json
 from pathlib import Path
@@ -17,14 +18,19 @@ from .state import MAP_STORE, GRAPH_STORE
 
 # Router
 from .routers import stores, products, auth, users
+from .routers.users import get_current_user
 from .ws import ws_router
 
 app = FastAPI(title="ESP32 Car Backend")
 
 # --- CORS 設定 ---
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,37 +85,13 @@ def startup_event():
 
 
 # ===============================
-# API: Import Map Manually
-# ===============================
-@app.post("/maps/import")
-def import_map(path: str = "data/map.json"):
-    try:
-        raw = Path(path).read_text(encoding="utf-8")
-        data = json.loads(raw)
-        map_data = MapData.model_validate(data)
-        g = build_graph(map_data)
-
-        MAP_STORE[map_data.map_id] = map_data
-        GRAPH_STORE[map_data.map_id] = g
-
-        return {
-            "ok": True,
-            "map_id": map_data.map_id,
-            "nodes": len(map_data.nodes),
-            "edges": len(map_data.edges),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# ===============================
 # API: Create Order
 # ===============================
 @app.post("/orders", response_model=CreateOrderResp, tags=["訂單"])
-def create_order(req: CreateOrderReq, db: Session = Depends(get_db)):
+def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     # 1. 檢查地圖是否載入
     if req.map_id not in GRAPH_STORE:
-        raise HTTPException(status_code=404, detail="map_id not loaded; call /maps/import first")
+        raise HTTPException(status_code=404, detail="map_id not loaded")
 
     g = GRAPH_STORE[req.map_id]
 
@@ -133,7 +115,7 @@ def create_order(req: CreateOrderReq, db: Session = Depends(get_db)):
         total_distance_cm=dist,
         eta_sec=eta,
         route=route,
-        user_email=req.user_email,
+        user_email=current_user.email,
         store_name=req.store_name,
         items=req.items or [],
         total_amount=req.total or 0.0
@@ -161,11 +143,14 @@ def create_order(req: CreateOrderReq, db: Session = Depends(get_db)):
 # API: Get Order
 # ===============================
 @app.get("/orders/{order_id}", tags=["訂單"])
-def get_order(order_id: str, db: Session = Depends(get_db)):
+def get_order(order_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     order = db.query(OrderDB).filter(OrderDB.id == order_id).first()
 
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.user_email != current_user.email:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return order
 
@@ -173,34 +158,3 @@ def get_order(order_id: str, db: Session = Depends(get_db)):
 @app.get("/")
 def read_root():
     return {"message": "Autonomous Delivery Robot API is running!"}
-
-
-# ===============================
-# 測試用 API (正式上線前移除)
-# ===============================
-@app.post("/test-db-write")
-def test_db_write(db: Session = Depends(get_db)):
-    test_id = f"TEST_{uuid.uuid4().hex[:4]}"
-    new_order = OrderDB(
-        id=test_id,
-        map_id="test_map",
-        status="DB_TESTING",
-        total_distance_cm=100.0,
-        eta_sec=50.0,
-        route=["nodeA", "nodeB"],
-        items=[{"name": "cola", "price": 30}]
-    )
-
-    try:
-        db.add(new_order)
-        db.commit()
-        db.refresh(new_order)
-        return {"status": "success", "order": new_order}
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
-
-
-@app.get("/test-db-read")
-def test_db_read(db: Session = Depends(get_db)):
-    orders = db.query(OrderDB).filter(OrderDB.status == "DB_TESTING").all()
-    return orders

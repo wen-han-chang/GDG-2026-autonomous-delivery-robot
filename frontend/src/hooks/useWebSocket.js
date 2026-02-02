@@ -8,19 +8,11 @@ export function useWebSocket(orderId) {
     const connect = useCallback(() => {
         if (!orderId) return
 
-        // ❌ 舊的寫法 (會連到 5173)
-        // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        // ws.current = new WebSocket(`${protocol}//${window.location.host}/ws`)
-
-        // ✅ 新的寫法 (強制連到後端 8000)
-        // 如果你有設定環境變數 VITE_API_URL，也可以用 replace('http', 'ws') 來做
-        const wsUrl = 'ws://localhost:8000/ws'; 
-        
-        console.log("嘗試連線 WebSocket:", wsUrl); // 加個 log 方便除錯
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        const wsUrl = `${protocol}//${window.location.host}/ws`
         ws.current = new WebSocket(wsUrl)
 
         ws.current.onopen = () => {
-            console.log("WebSocket 連線成功！");
             setConnected(true)
             ws.current.send(JSON.stringify({
                 type: 'subscribe',
@@ -47,12 +39,10 @@ export function useWebSocket(orderId) {
         }
 
         ws.current.onclose = () => {
-            console.log("WebSocket 連線關閉");
             setConnected(false)
         }
 
-        ws.current.onerror = (err) => {
-            console.error("WebSocket 發生錯誤:", err);
+        ws.current.onerror = () => {
             setConnected(false)
         }
     }, [orderId])

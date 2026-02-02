@@ -45,11 +45,11 @@ export default function Checkout() {
                 storeName: items[0]?.store_name || '未知店家',
                 items: items.map(item => `${item.name} x${item.quantity}`),
                 total: getTotal(),
-                userEmail: useAuthStore.getState().user?.email
             }
-            
+            const token = useAuthStore.getState().token
+
             // MVP: 假設店家在 A 點，配送到使用者選的節點
-            const order = await createOrder('campus_demo', 'A', selectedNode, orderInfo)
+            const order = await createOrder('campus_demo', 'A', selectedNode, orderInfo, token)
             setOrder(order)
             setSubmitted(true)
             clearCart()

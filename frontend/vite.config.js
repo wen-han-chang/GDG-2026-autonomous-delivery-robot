@@ -9,6 +9,9 @@ export default defineConfig({
     react(), 
     tailwindcss() 
   ],
+  test: {
+    environment: 'happy-dom',
+  },
   server: {
     host: true, // 讓 Docker 外部能連線
     proxy: {
