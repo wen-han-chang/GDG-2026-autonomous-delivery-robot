@@ -11,7 +11,7 @@ STORE_STORE = {
         "category": "餐廳",
         "rating": 4.5,
         "deliveryTime": "5-10 分鐘",
-        "image": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop",
+        "image": "/images/stores/bbq_rice.png",
         "location_node": "A"
     },
     "S002": {
@@ -21,7 +21,7 @@ STORE_STORE = {
         "category": "飲料",
         "rating": 4.8,
         "deliveryTime": "3-5 分鐘",
-        "image": "https://images.unsplash.com/photo-1558857563-b371033873b8?w=400&h=300&fit=crop",
+        "image": "/images/stores/tw_second_flavor.png",
         "location_node": "A"
     },
     "S003": {
@@ -31,7 +31,7 @@ STORE_STORE = {
         "category": "便利商店",
         "rating": 4.2,
         "deliveryTime": "5-8 分鐘",
-        "image": "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&h=300&fit=crop",
+        "image": "/images/stores/811.png",
         "location_node": "X1"
     },
     "S004": {
@@ -41,7 +41,7 @@ STORE_STORE = {
         "category": "餐廳",
         "rating": 4.3,
         "deliveryTime": "8-12 分鐘",
-        "image": "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400&h=300&fit=crop",
+        "image": "/images/stores/chicken_store.png",
         "location_node": "X2"
     },
     "S005": {
@@ -51,7 +51,7 @@ STORE_STORE = {
         "category": "輕食",
         "rating": 4.6,
         "deliveryTime": "5-8 分鐘",
-        "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop",
+        "image": "/images/stores/salad.png",
         "location_node": "B"
     },
     "S006": {
@@ -61,7 +61,7 @@ STORE_STORE = {
         "category": "咖啡",
         "rating": 4.7,
         "deliveryTime": "5-10 分鐘",
-        "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop",
+        "image": "/images/stores/coffee_shop.png",
         "location_node": "C"
     },
     "S007": {
@@ -81,7 +81,7 @@ STORE_STORE = {
         "category": "飲料",
         "rating": 4.5,
         "deliveryTime": "5-8 分鐘",
-        "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&h=300&fit=crop",
+        "image": "/images/stores/fruits.png",
         "location_node": "A"
     },
     "S009": {
@@ -91,7 +91,7 @@ STORE_STORE = {
         "category": "餐廳",
         "rating": 4.6,
         "deliveryTime": "12-18 分鐘",
-        "image": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop",
+        "image": "/images/stores/pizza_store.png",
         "location_node": "X1"
     }
 }
@@ -104,7 +104,7 @@ PRODUCT_STORE = {
         "name": "招牌便當",
         "price": 80,
         "description": "主菜 + 三樣配菜 + 白飯",
-        "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop"
+        "image": "/images/products/top_sale.png"
     },
     "P002": {
         "id": "P002",
@@ -112,7 +112,7 @@ PRODUCT_STORE = {
         "name": "雞腿便當",
         "price": 100,
         "description": "酥炸雞腿 + 三樣配菜 + 白飯",
-        "image": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400&h=300&fit=crop"
+        "image": "/images/products/chicken_rice.png"
     },
     "P003": {
         "id": "P003",
@@ -120,7 +120,7 @@ PRODUCT_STORE = {
         "name": "排骨便當",
         "price": 90,
         "description": "香酥排骨 + 三樣配菜 + 白飯",
-        "image": "https://images.unsplash.com/photo-1432139509613-5c4255815697?w=400&h=300&fit=crop"
+        "image": "/images/products/pie_ku_rice.png"
     },
     "P004": {
         "id": "P004",
@@ -128,7 +128,7 @@ PRODUCT_STORE = {
         "name": "紅茶",
         "price": 25,
         "description": "古早味紅茶 500ml",
-        "image": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=300&fit=crop"
+        "image": "/images/products/black_tea.png"
     },
     "P005": {
         "id": "P005",
@@ -136,7 +136,7 @@ PRODUCT_STORE = {
         "name": "綠茶",
         "price": 25,
         "description": "無糖綠茶 500ml",
-        "image": "https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?w=400&h=300&fit=crop"
+        "image": "/images/products/green_tea.png"
     },
     "P006": {
         "id": "P006",
@@ -144,23 +144,23 @@ PRODUCT_STORE = {
         "name": "珍珠奶茶",
         "price": 35,
         "description": "香濃珍珠奶茶 500ml",
-        "image": "https://images.unsplash.com/photo-1558857563-b371033873b8?w=400&h=300&fit=crop"
+        "image": "/images/products/bubble_tea.png"
     },
     "P007": {
         "id": "P007",
         "store_id": "S003",
         "name": "泡麵",
         "price": 35,
-        "description": "經典牛肉麵",
-        "image": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=300&fit=crop"
+        "description": "好吃的泡麵",
+        "image": "/images/products/pao_mian.png"
     },
     "P008": {
         "id": "P008",
         "store_id": "S003",
         "name": "餅乾",
         "price": 45,
-        "description": "綜合餅乾組合包",
-        "image": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&h=300&fit=crop"
+        "description": "餅乾組合包",
+        "image": "/images/products/cookie.png"
     },
     "P009": {
         "id": "P009",
@@ -168,7 +168,7 @@ PRODUCT_STORE = {
         "name": "原味炸雞",
         "price": 75,
         "description": "酥脆多汁炸雞 3塊",
-        "image": "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400&h=300&fit=crop"
+        "image": "/images/products/origin_chicken.png"
     },
     "P010": {
         "id": "P010",
@@ -176,7 +176,7 @@ PRODUCT_STORE = {
         "name": "辣味炸雞",
         "price": 85,
         "description": "香辣炸雞 3塊",
-        "image": "https://images.unsplash.com/photo-1575932444877-5106bee2a599?w=400&h=300&fit=crop"
+        "image": "/images/products/spicy_chicken.png"
     },
     "P011": {
         "id": "P011",
@@ -184,7 +184,7 @@ PRODUCT_STORE = {
         "name": "薯條",
         "price": 40,
         "description": "金黃酥脆薯條",
-        "image": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop"
+        "image": "/images/products/french_fries.png"
     },
     "P012": {
         "id": "P012",
@@ -192,7 +192,7 @@ PRODUCT_STORE = {
         "name": "凱薩沙拉",
         "price": 95,
         "description": "羅蔓生菜+帕瑪森起司+凱薩醬",
-        "image": "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=400&h=300&fit=crop"
+        "image": "/images/products/kaser_salad.png"
     },
     "P013": {
         "id": "P013",
@@ -200,7 +200,7 @@ PRODUCT_STORE = {
         "name": "雞肉沙拉",
         "price": 120,
         "description": "嫩煎雞胸+綜合蔬菜+油醋醬",
-        "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop"
+        "image": "/images/products/chicken_salad.png"
     },
     "P014": {
         "id": "P014",
@@ -208,7 +208,7 @@ PRODUCT_STORE = {
         "name": "鮮蔬果昔",
         "price": 65,
         "description": "香蕉+菠菜+蘋果",
-        "image": "https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=400&h=300&fit=crop"
+        "image": "/images/products/juice.png"
     },
     "P015": {
         "id": "P015",
@@ -216,7 +216,7 @@ PRODUCT_STORE = {
         "name": "美式咖啡",
         "price": 50,
         "description": "單品咖啡豆現沖",
-        "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop"
+        "image": "/images/products/america_coffee.png"
     },
     "P016": {
         "id": "P016",
@@ -224,7 +224,7 @@ PRODUCT_STORE = {
         "name": "拿鐵",
         "price": 65,
         "description": "濃縮咖啡+綿密奶泡",
-        "image": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=300&fit=crop"
+        "image": "/images/products/latte.png"
     },
     "P017": {
         "id": "P017",
@@ -232,7 +232,7 @@ PRODUCT_STORE = {
         "name": "提拉米蘇",
         "price": 85,
         "description": "經典義式甜點",
-        "image": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop"
+        "image": "/images/products/cake.png"
     },
     "P018": {
         "id": "P018",
@@ -256,7 +256,7 @@ PRODUCT_STORE = {
         "name": "煎餃",
         "price": 60,
         "description": "日式煎餃 6顆",
-        "image": "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&h=300&fit=crop"
+        "image": "/images/products/dumplings.png"
     },
     "P021": {
         "id": "P021",
@@ -264,7 +264,7 @@ PRODUCT_STORE = {
         "name": "綜合水果盒",
         "price": 75,
         "description": "當季新鮮水果組合",
-        "image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&h=300&fit=crop"
+        "image": "/images/products/fruits_box.png"
     },
     "P022": {
         "id": "P022",
@@ -272,7 +272,7 @@ PRODUCT_STORE = {
         "name": "西瓜汁",
         "price": 45,
         "description": "現打西瓜汁 500ml",
-        "image": "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=400&h=300&fit=crop"
+        "image": "/images/products/watermalen.png"
     },
     "P023": {
         "id": "P023",
@@ -280,7 +280,7 @@ PRODUCT_STORE = {
         "name": "芒果冰沙",
         "price": 55,
         "description": "愛文芒果冰沙 500ml",
-        "image": "https://images.unsplash.com/photo-1546173159-315724a31696?w=400&h=300&fit=crop"
+        "image": "/images/products/mongo.png"
     },
     "P024": {
         "id": "P024",
@@ -288,7 +288,7 @@ PRODUCT_STORE = {
         "name": "瑪格麗特披薩",
         "price": 180,
         "description": "番茄醬+莫札瑞拉起司+羅勒",
-        "image": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop"
+        "image": "/images/products/magalita_pizza.png"
     },
     "P025": {
         "id": "P025",
@@ -296,7 +296,7 @@ PRODUCT_STORE = {
         "name": "夏威夷披薩",
         "price": 200,
         "description": "火腿+鳳梨+起司",
-        "image": "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&h=300&fit=crop"
+        "image": "/images/products/hkawii_pizza.png"
     },
     "P026": {
         "id": "P026",
@@ -304,7 +304,7 @@ PRODUCT_STORE = {
         "name": "蒜香麵包",
         "price": 60,
         "description": "香蒜奶油烤麵包 4片",
-        "image": "https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?w=400&h=300&fit=crop"
+        "image": "/images/products/onion_bread.png"
     }
 }
 

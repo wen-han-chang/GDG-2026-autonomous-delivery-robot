@@ -46,7 +46,7 @@ class Telemetry(BaseModel):
     node: str
     progress: float = Field(ge=0.0, le=1.0)
     speed: float = Field(gt=0.0)  # cm/s
-    state: Literal["IDLE", "ASSIGNED", "MOVING", "ARRIVED"] = "MOVING"
+    state: Literal["IDLE", "ASSIGNED", "MOVING", "ARRIVED", "DELIVERED"] = "MOVING"
 
 
 # ==========================================

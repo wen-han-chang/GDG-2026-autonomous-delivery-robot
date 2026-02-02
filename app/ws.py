@@ -3,7 +3,8 @@ from typing import Set, Dict, Any
 import json
 
 from .models import Telemetry
-from .state import ORDER_STORE
+from .database import SessionLocal
+from .sql_models import OrderDB
 
 
 ws_router = APIRouter()
@@ -18,6 +19,25 @@ async def broadcast(msg: Dict[str, Any]):
             dead.append(ws)
     for ws in dead:
         CLIENTS.discard(ws)
+
+
+def update_order_in_db(order_id: str, status: str):
+    """同步更新資料庫中的訂單狀態"""
+    db = SessionLocal()
+    try:
+        order = db.query(OrderDB).filter(OrderDB.id == order_id).first()
+        if order:
+            order.status = status
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Failed to update order {order_id}: {e}")
+        return False
+    finally:
+        db.close()
+
 
 @ws_router.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
@@ -36,14 +56,11 @@ async def ws_endpoint(ws: WebSocket):
 
             if msg_type == "telemetry":
                 t = Telemetry.model_validate(data["payload"])
-                # 更新 order 狀態（最簡版）
-                if t.order_id in ORDER_STORE:
-                    ORDER_STORE[t.order_id]["state"] = t.state
-                    ORDER_STORE[t.order_id]["robot_id"] = t.robot_id
-                    ORDER_STORE[t.order_id]["node"] = t.node
-                    ORDER_STORE[t.order_id]["progress"] = t.progress
-                    ORDER_STORE[t.order_id]["speed"] = t.speed
 
+                # 更新資料庫中的訂單狀態
+                update_order_in_db(t.order_id, t.state)
+
+                # 廣播給所有連線的客戶端
                 await broadcast({
                     "type": "order_update",
                     "order_id": t.order_id,
@@ -55,7 +72,6 @@ async def ws_endpoint(ws: WebSocket):
                 })
 
             elif msg_type == "subscribe":
-                # demo: 你可以忽略或做訂閱機制
                 await ws.send_text(json.dumps({"type": "subscribed", "payload": data.get("payload")}, ensure_ascii=False))
             else:
                 await ws.send_text(json.dumps({"type": "error", "msg": "unknown message type"}, ensure_ascii=False))
