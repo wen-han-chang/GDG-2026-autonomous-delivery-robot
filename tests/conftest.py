@@ -45,6 +45,22 @@ def client():
 
 
 @pytest.fixture(scope="function")
+def auth_header(client):
+    """註冊測試使用者並回傳 Authorization header"""
+    client.post("/auth/register", json={
+        "email": "order_test@test.com",
+        "password": "testpass123",
+        "name": "OrderTester"
+    })
+    login_resp = client.post("/auth/login", json={
+        "email": "order_test@test.com",
+        "password": "testpass123"
+    })
+    token = login_resp.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="function")
 def db_session():
     """建立測試用的資料庫 Session"""
     Base.metadata.create_all(bind=engine)
