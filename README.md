@@ -42,50 +42,101 @@ Use short, module-based prefixes:
 ## Project Structure
 
 ```
-
 .
 ├── app/                # Backend (Python)
 ├── frontend/           # Frontend (Vite / Web UI)
 ├── data/               # Map / test data
 ├── robot_simulator.py  # Simulation entry (if used)
 └── README.md
-
-````
-
----
-
-## Quick Start (DEV)
-
-### 1) Backend
-```bash
-cd app
-python -m venv venv
-source venv/bin/activate   # macOS/Linux
-# venv\Scripts\activate    # Windows
-
-pip install -r requirements.txt
-python main.py
-````
-
-Backend should run at:
-
-* `http://localhost:8000` (example)
-
-> If port differs, check backend config.
-
----
-
-### 2) Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
 ```
 
-Frontend should run at:
+---
 
-* `http://localhost:5173`
+## Quick Start (Docker Compose)
+
+本專案建議使用 Docker Compose 進行開發環境的快速啟動與管理。
+
+1.  **確保 Docker 正在運行**
+    *   請確認您的機器上已安裝 Docker Desktop 並正在運行。
+
+2.  **啟動所有服務**
+    *   在專案的根目錄 (與 `docker-compose.yml` 同級的目錄) 執行：
+        ```bash
+        docker compose up -d
+        ```
+    *   這會啟動資料庫 (`robot-db`)、後端 (`robot-backend`) 和前端 (`robot-frontend`) 服務。
+
+3.  **確認服務狀態**
+    *   您可以執行以下指令查看所有服務是否正常運行：
+        ```bash
+        docker compose ps
+        ```
+    *   確認所有服務的 `STATUS` 都是 `Up`。
+
+4.  **訪問應用程式**
+    *   **前端 (Web UI)**: 打開您的瀏覽器，訪問 [http://localhost:5173](http://localhost:5173)。
+    *   **後端 API 文件**: 訪問 [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI)。
+
+---
+
+## 後端依賴管理 (使用 pip-tools)
+
+為了確保開發環境的一致性和依賴版本的穩定，我們使用 `pip-tools` 來管理後端 (Python) 的依賴套件。
+
+1.  **直接依賴定義**:
+    所有直接依賴都定義在 `backend/requirements.in` 檔案中。**請勿直接修改 `requirements.txt`。**
+
+2.  **新增/更新/刪除套件**:
+    *   若要新增、更新或刪除任何 Python 套件，請編輯 `backend/requirements.in`。
+    *   您可以指定版本 (`package==X.Y.Z`)，或只指定套件名稱讓 `pip-tools` 尋找最新版本。
+
+3.  **重新產生 `requirements.txt`**:
+    修改 `requirements.in` 後，請執行以下指令來更新 `requirements.txt`：
+    ```bash
+    docker compose run --rm backend sh -c "pip install pip-tools && pip-compile requirements.in -o requirements.txt"
+    ```
+    這個指令會在一個暫時的 Docker 容器中執行，並根據 `requirements.in` 產生最新的 `requirements.txt`。
+
+4.  **重新建置後端映像檔**:
+    更新 `requirements.txt` 後，您需要重新建置後端服務的 Docker 映像檔，以安裝新的依賴：
+    ```bash
+    docker compose build backend
+    ```
+
+5.  **重啟服務**:
+    最後，重啟 Docker Compose 服務以應用變更：
+    ```bash
+    docker compose up -d
+    ```
+
+---
+
+## 資料庫遷移 (使用 Alembic)
+
+我們使用 Alembic 來進行資料庫結構的版控和遷移。這在開發和部署到生產環境 (例如 AWS RDS) 時都至關重要。
+
+1.  **初始設定**:
+    Alembic 環境已在專案根目錄下的 `alembic/` 資料夾中初始化。相關設定在 `alembic.ini` 和 `alembic/env.py` 中。
+
+2.  **變更資料庫模型**:
+    *   當您需要新增表、新增欄位或修改現有模型時，請在 `app/sql_models.py` 中修改您的 SQLAlchemy 模型定義。
+
+3.  **產生新的遷移腳本**:
+    修改模型後，執行以下指令來產生一個新的遷移腳本：
+    ```bash
+    docker compose run --rm backend alembic revision --autogenerate -m "請用英文簡潔描述您的變更"
+    ```
+    這會在 `alembic/versions/` 目錄中建立一個新的 Python 檔案，包含將資料庫從當前狀態遷移到新模型所需的變更。
+
+4.  **審查遷移腳本**:
+    **非常重要**：在應用遷移之前，請務必打開新產生的 `.py` 檔案 (`alembic/versions/xxxxx_your_message.py`) 仔細審查其內容，確保 Alembic 自動生成的 SQL 語句符合您的預期。Alembic 的 `autogenerate` 並非萬能。
+
+5.  **應用遷移**:
+    審查無誤後，執行以下指令將變更應用到資料庫：
+    ```bash
+    docker compose run --rm backend alembic upgrade head
+    ```
+    這將會執行所有尚未應用的遷移腳本，將資料庫更新到最新狀態。
 
 ---
 
