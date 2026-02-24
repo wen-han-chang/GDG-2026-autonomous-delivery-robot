@@ -1,4 +1,4 @@
-const API_BASE = '/api'
+const API_BASE = import.meta.env.VITE_API_URL
 
 export async function createOrder(mapId, fromNode, toNode, orderInfo = {}, token) {
     const headers = { 'Content-Type': 'application/json' }

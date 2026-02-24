@@ -7,11 +7,12 @@ export default function Store() {
     const [store, setStore] = useState(null)
     const [products, setProducts] = useState([])
     const [loading, setLoading] = useState(true)
+    const apiUrl = import.meta.env.VITE_API_URL
 
     useEffect(() => {
         Promise.all([
-            fetch(`/api/stores/${storeId}`).then(res => res.json()),
-            fetch(`/api/stores/${storeId}/products`).then(res => res.json())
+            fetch(`${apiUrl}/stores/${storeId}`).then(res => res.json()),
+            fetch(`${apiUrl}/stores/${storeId}/products`).then(res => res.json())
         ])
             .then(([storeData, productsData]) => {
                 setStore(storeData)
