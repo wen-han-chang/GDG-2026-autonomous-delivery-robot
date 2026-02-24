@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 
+const apiUrl = import.meta.env.VITE_API_URL
+
 export default function Store() {
     const { storeId } = useParams()
     const [store, setStore] = useState(null)
     const [products, setProducts] = useState([])
     const [loading, setLoading] = useState(true)
-    const apiUrl = import.meta.env.VITE_API_URL
 
     useEffect(() => {
         Promise.all([

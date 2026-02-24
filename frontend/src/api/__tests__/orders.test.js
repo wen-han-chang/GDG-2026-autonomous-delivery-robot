@@ -14,7 +14,7 @@ describe('createOrder', () => {
         })
         const result = await createOrder('campus', 'A', 'B', { storeName: 'Store1', total: 200 }, 'test-token')
         expect(result).toEqual(orderData)
-        expect(globalThis.fetch).toHaveBeenCalledWith('/api/orders', expect.objectContaining({
+        expect(globalThis.fetch).toHaveBeenCalledWith('http://localhost:8000/orders', expect.objectContaining({
             method: 'POST',
             headers: expect.objectContaining({
                 'Authorization': 'Bearer test-token'
@@ -41,7 +41,7 @@ describe('getOrder', () => {
         })
         const result = await getOrder('O1', 'test-token')
         expect(result).toEqual(orderData)
-        expect(globalThis.fetch).toHaveBeenCalledWith('/api/orders/O1', expect.objectContaining({
+        expect(globalThis.fetch).toHaveBeenCalledWith('http://localhost:8000/orders/O1', expect.objectContaining({
             headers: expect.objectContaining({
                 'Authorization': 'Bearer test-token'
             })
