@@ -1,0 +1,5 @@
+paho-mqtt>=2.0.0
+pupil-apriltags>=1.0.4
+numpy>=1.24.0
+opencv-python>=4.8.0
+networkx>=3.1
