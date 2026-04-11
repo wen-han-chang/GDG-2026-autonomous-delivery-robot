@@ -26,7 +26,7 @@ import numpy as np
 import pupil_apriltags as apriltag
 import networkx as nx
 import paho.mqtt.client as mqtt
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 # ─── Logging ──────────────────────────────────────────────────
@@ -89,12 +89,12 @@ def health():
 
 
 @app.post("/upload-image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(request: Request):
     """
-    ESP32-CAM 拍照後呼叫此端點。
+    ESP32-CAM 拍照後呼叫此端點 (raw JPEG bytes, Content-Type: image/jpeg)。
     回傳辨識結果，並透過 MQTT 發布 car/node_id 與 car/cmd。
     """
-    jpeg_bytes = await file.read()
+    jpeg_bytes = await request.body()
     if not jpeg_bytes:
         raise HTTPException(status_code=400, detail="Empty file")
 
