@@ -9,3 +9,4 @@ python-jose[cryptography]
 pydantic
 python-dotenv
 email-validator
+paho-mqtt>=2.0.0

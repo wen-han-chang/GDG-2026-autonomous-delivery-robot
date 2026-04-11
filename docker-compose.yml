@@ -13,7 +13,17 @@ services:
     ports:
       - "5433:5432"
 
-  # 2. 後端服務 (Python)
+  # 2. MQTT Broker (Mosquitto)
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: robot-mqtt
+    restart: always
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  # 3. 後端服務 (Python)
   backend:
     build:
       context: .
@@ -29,6 +39,7 @@ services:
       - ALLOWED_ORIGINS=http://localhost,http://your-alb-dns-name.amazonaws.com
     depends_on:
       - db
+      - mosquitto
 
   # 3. 前端服務 (Nginx)
   frontend:

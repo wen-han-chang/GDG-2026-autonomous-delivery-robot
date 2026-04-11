@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 import json
+import threading
 
 
 @dataclass
@@ -75,20 +76,22 @@ class RobotState:
 
 
 class GlobalPlannerState:
-    """全局規劃狀態管理"""
+    """全局規劃狀態管理（線程安全）"""
 
     def __init__(self):
+        self._lock = threading.RLock()  # 保護所有狀態變更
         self.robots: Dict[str, RobotState] = {}
         self.order_counter: int = 0  # 生成訂單 ID
 
     def add_robot(self, robot_id: str, start_node: str) -> RobotState:
         """初始化小車"""
-        state = RobotState(robot_id=robot_id, current_node=start_node)
-        self.robots[robot_id] = state
-        return state
+        with self._lock:
+            state = RobotState(robot_id=robot_id, current_node=start_node)
+            self.robots[robot_id] = state
+            return state
 
     def get_robot(self, robot_id: str) -> Optional[RobotState]:
-        """取得小車狀態"""
+        """取得小車狀態（唯讀，不需鎖）"""
         return self.robots.get(robot_id)
 
     def add_order(
@@ -96,69 +99,76 @@ class GlobalPlannerState:
         robot_id: str,
         shop_node: str,
         drop_node: str,
+        order_id: Optional[str] = None,
         drop_coords: Optional[Tuple[float, float]] = None,
     ) -> Optional[str]:
         """
         添加新訂單到小車的待執行列表
 
+        :param order_id: DB 訂單 ID（若提供則直接使用，否則自動生成）
         :return: order_id（若成功）或 None（若失敗）
         """
-        robot = self.get_robot(robot_id)
-        if not robot:
-            return None
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot:
+                return None
 
-        self.order_counter += 1
-        order_id = f"ORDER-{self.order_counter:06d}"
+            if order_id is None:
+                self.order_counter += 1
+                order_id = f"ORDER-{self.order_counter:06d}"
 
-        # 訂單編號（1-indexed）
-        k = len(robot.all_orders) + 1
-        order = Order(
-            order_id=order_id,
-            shop_node=shop_node,
-            drop_node=drop_node,
-            drop_coords=drop_coords,
-        )
-        robot.all_orders[k] = order
-        return order_id
+            # 訂單編號（1-indexed）
+            k = len(robot.all_orders) + 1
+            order = Order(
+                order_id=order_id,
+                shop_node=shop_node,
+                drop_node=drop_node,
+                drop_coords=drop_coords,
+            )
+            robot.all_orders[k] = order
+            return order_id
 
     def update_robot_location(self, robot_id: str, node: str) -> bool:
         """更新小車位置"""
-        robot = self.get_robot(robot_id)
-        if not robot:
-            return False
-        robot.current_node = node
-        return True
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot:
+                return False
+            robot.current_node = node
+            return True
 
     def mark_order_picked(self, robot_id: str, k: int) -> bool:
         """標記訂單已取"""
-        robot = self.get_robot(robot_id)
-        if not robot or k not in robot.all_orders:
-            return False
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot or k not in robot.all_orders:
+                return False
 
-        order = robot.all_orders[k]
-        order.status = "picked"
-        order.picked_at = datetime.now()
+            order = robot.all_orders[k]
+            order.status = "picked"
+            order.picked_at = datetime.now()
 
-        # 更新 picked_mask
-        robot.picked_mask |= 1 << (k - 1)
-        return True
+            # 更新 picked_mask
+            robot.picked_mask |= 1 << (k - 1)
+            return True
 
     def mark_order_delivered(self, robot_id: str, k: int) -> bool:
         """標記訂單已送"""
-        robot = self.get_robot(robot_id)
-        if not robot or k not in robot.all_orders:
-            return False
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot or k not in robot.all_orders:
+                return False
 
-        order = robot.all_orders[k]
-        order.status = "delivered"
-        order.delivered_at = datetime.now()
+            order = robot.all_orders[k]
+            order.status = "delivered"
+            order.delivered_at = datetime.now()
 
-        # 更新 picked_mask（移除該位）
-        robot.picked_mask &= ~(1 << (k - 1))
+            # 更新 picked_mask（移除該位）
+            robot.picked_mask &= ~(1 << (k - 1))
 
-        # 更新 next_deliver_k
-        robot.next_deliver_k = k + 1
-        return True
+            # 更新 next_deliver_k
+            robot.next_deliver_k = k + 1
+            return True
 
     def update_plan(
         self,
@@ -168,15 +178,16 @@ class GlobalPlannerState:
         plan_cost: int,
     ) -> bool:
         """更新規劃結果"""
-        robot = self.get_robot(robot_id)
-        if not robot:
-            return False
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot:
+                return False
 
-        robot.plan_actions = plan_actions
-        robot.plan_stops = plan_stops
-        robot.last_plan_cost = plan_cost
-        robot.last_replan_time = datetime.now()
-        return True
+            robot.plan_actions = plan_actions
+            robot.plan_stops = plan_stops
+            robot.last_plan_cost = plan_cost
+            robot.last_replan_time = datetime.now()
+            return True
 
     def get_robot_orders_as_algorithm_input(
         self, robot_id: str

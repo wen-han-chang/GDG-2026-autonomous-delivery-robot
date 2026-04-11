@@ -1,5 +1,6 @@
 import os
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -21,7 +22,7 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 if not SECRET_KEY:
     raise ValueError("JWT_SECRET_KEY 環境變數未設定")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -75,6 +76,16 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)): # 👈 注入 
             "createdAt": new_user.created_at.isoformat()
         }
     }
+
+@router.post("/token", include_in_schema=False)
+def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Swagger UI OAuth2 form 相容端點"""
+    user = db.query(User).filter(User.email == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="帳號或密碼錯誤")
+    access_token = create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/login")
 def login(user_in: UserLogin, db: Session = Depends(get_db)): # 👈 注入 db

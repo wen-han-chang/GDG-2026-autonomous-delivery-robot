@@ -19,11 +19,16 @@ from typing import List, Optional, Dict
 from datetime import datetime
 import logging
 
+from sqlalchemy.orm import Session
+
 from ..algorithm import MapGraph, Planner, pack_state, unpack_state
 from ..planner_state import get_global_state, RobotState
 from ..graph import build_graph
 from ..state import GRAPH_STORE, MAP_STORE
 from ..models import MapData
+from ..ws import update_order_in_db, broadcast
+from ..database import get_db
+from ..sql_models import RobotStateDB
 
 logger = logging.getLogger(__name__)
 
@@ -83,60 +88,88 @@ class InitRobotRequest(BaseModel):
 # ==================== 輔助函數 ====================
 
 
+def _get_map_data():
+    """取得當前載入的地圖資料（單地圖部署）"""
+    map_data = next(iter(MAP_STORE.values()), None)
+    if map_data is None or not map_data.nodes:
+        raise HTTPException(status_code=500, detail="Map not loaded")
+    return map_data
+
+
 def get_node_id_mapping() -> Dict[str, int]:
     """
     取得節點名稱到 ID 的映射
 
     algorithm.py 使用整數 ID，需要與資料庫的字串節點名稱做轉換
-    
-    映射順序必須與 MAP_STORE.nodes 在 build_algorithm_graph 中添加的順序相同
+
+    映射順序必須與 MAP_STORE nodes 在 build_algorithm_graph 中添加的順序相同
     """
-    if MAP_STORE is None or not MAP_STORE.nodes:
-        raise HTTPException(status_code=500, detail="Map not loaded")
-
-    mapping = {}
-    for idx, node in enumerate(MAP_STORE.nodes):
-        mapping[node.id] = idx
-
-    return mapping
+    map_data = _get_map_data()
+    return {node.id: idx for idx, node in enumerate(map_data.nodes)}
 
 
 def build_algorithm_graph() -> MapGraph:
     """建立演算法用的圖結構"""
-    if MAP_STORE is None or not MAP_STORE.nodes:
-        raise HTTPException(status_code=500, detail="Map not loaded")
-
+    map_data = _get_map_data()
     mp = MapGraph()
     node_mapping = get_node_id_mapping()
 
-    # 添加所有節點
-    for node in MAP_STORE.nodes:
-        # 在演算法中節點按順序添加，ID 自動分配
-        # 確保添加順序與 node_id_mapping 一致
+    # 添加所有節點（順序必須與 node_mapping 一致）
+    for node in map_data.nodes:
         mp.add_node(node.x, node.y)
 
     # 添加邊
-    for edge in MAP_STORE.edges:
+    for edge in map_data.edges:
         from_id = node_mapping[edge.from_]
         to_id = node_mapping[edge.to]
-        # 使用歐幾里得距離或邊的指定長度
         if edge.length is not None:
             length = int(edge.length)
         else:
-            fx, fy = MAP_STORE.nodes[from_id].x, MAP_STORE.nodes[from_id].y
-            tx, ty = MAP_STORE.nodes[to_id].x, MAP_STORE.nodes[to_id].y
-            length = int((fx - tx) ** 2 + (fy - ty) ** 2) ** 0.5
+            fx, fy = map_data.nodes[from_id].x, map_data.nodes[from_id].y
+            tx, ty = map_data.nodes[to_id].x, map_data.nodes[to_id].y
+            length = int(((fx - tx) ** 2 + (fy - ty) ** 2) ** 0.5)
 
         mp.add_undirected_edge(from_id, to_id, length)
 
     return mp
 
 
+# ==================== DB 持久化輔助函數 ====================
+
+
+def _persist_robot_state(robot: RobotState, db: Session):
+    """將小車狀態 upsert 到 RobotStateDB"""
+    try:
+        existing = db.query(RobotStateDB).filter(RobotStateDB.robot_id == robot.robot_id).first()
+        if existing:
+            existing.current_node = robot.current_node
+            existing.next_deliver_k = robot.next_deliver_k
+            existing.picked_mask = robot.picked_mask
+            existing.plan_actions = robot.plan_actions
+            existing.plan_stops = robot.plan_stops
+            existing.last_plan_cost = robot.last_plan_cost
+            existing.updated_at = datetime.utcnow()
+        else:
+            db.add(RobotStateDB(
+                robot_id=robot.robot_id,
+                current_node=robot.current_node,
+                next_deliver_k=robot.next_deliver_k,
+                picked_mask=robot.picked_mask,
+                plan_actions=robot.plan_actions,
+                plan_stops=robot.plan_stops,
+                last_plan_cost=robot.last_plan_cost,
+            ))
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to persist robot state for {robot.robot_id}: {e}")
+        db.rollback()
+
+
 # ==================== API Endpoints ====================
 
 
 @router.post("/init")
-async def init_robot(req: InitRobotRequest):
+async def init_robot(req: InitRobotRequest, db: Session = Depends(get_db)):
     """
     初始化小車
 
@@ -144,7 +177,8 @@ async def init_robot(req: InitRobotRequest):
     :param start_node: 起始節點（預設 "A"）
     """
     state = get_global_state()
-    agent = state.add_robot(req.robot_id, req.start_node)
+    robot = state.add_robot(req.robot_id, req.start_node)
+    _persist_robot_state(robot, db)
 
     logger.info(f"Robot {req.robot_id} initialized at node {req.start_node}")
 
@@ -182,7 +216,7 @@ async def get_robot_status(robot_id: str = Query(...)):
 
 
 @router.post("/replan")
-async def replan(req: ReplanRequest) -> ReplanResponse:
+async def replan(req: ReplanRequest, db: Session = Depends(get_db)) -> ReplanResponse:
     """
     從當前狀態開始重新規劃
 
@@ -254,8 +288,9 @@ async def replan(req: ReplanRequest) -> ReplanResponse:
         reverse_mapping = {v: k for k, v in node_mapping.items()}
         stops_names = [reverse_mapping.get(s, str(s)) for s in stops]
 
-        # 保存規劃結果
+        # 保存規劃結果並持久化到 DB
         state.update_plan(req.robot_id, actions, stops_names, cost)
+        _persist_robot_state(robot, db)
 
         logger.info(
             f"Replanning succeeded for robot {req.robot_id}: cost={cost}, actions={len(actions)}"
@@ -287,6 +322,7 @@ async def update_location(req: UpdateLocationRequest):
         raise HTTPException(status_code=404, detail=f"Robot {req.robot_id} not found")
 
     logger.info(f"Robot {req.robot_id} moved to {req.node}")
+    await broadcast({"type": "robot_location", "robot_id": req.robot_id, "node": req.node})
 
     return {
         "robot_id": req.robot_id,
@@ -304,8 +340,18 @@ async def mark_order_picked(robot_id: str = Query(...), order_k: int = Query(...
     :param order_k: 訂單編號（1-indexed）
     """
     state = get_global_state()
+    robot = state.get_robot(robot_id)
+    if robot is None:
+        raise HTTPException(status_code=404, detail=f"Robot {robot_id} not found")
+
+    order = robot.all_orders.get(order_k)
     if not state.mark_order_picked(robot_id, order_k):
         raise HTTPException(status_code=400, detail="Cannot mark order as picked")
+
+    # 同步更新 DB 訂單狀態
+    if order and order.order_id:
+        update_order_in_db(order.order_id, "PICKED")
+        await broadcast({"type": "order_status", "order_id": order.order_id, "status": "PICKED", "robot_id": robot_id})
 
     logger.info(f"Robot {robot_id} picked order {order_k}")
 
@@ -325,8 +371,18 @@ async def mark_order_delivered(robot_id: str = Query(...), order_k: int = Query(
     :param order_k: 訂單編號（1-indexed）
     """
     state = get_global_state()
+    robot = state.get_robot(robot_id)
+    if robot is None:
+        raise HTTPException(status_code=404, detail=f"Robot {robot_id} not found")
+
+    order = robot.all_orders.get(order_k)
     if not state.mark_order_delivered(robot_id, order_k):
         raise HTTPException(status_code=400, detail="Cannot mark order as delivered")
+
+    # 同步更新 DB 訂單狀態
+    if order and order.order_id:
+        update_order_in_db(order.order_id, "DELIVERED")
+        await broadcast({"type": "order_status", "order_id": order.order_id, "status": "DELIVERED", "robot_id": robot_id})
 
     logger.info(f"Robot {robot_id} delivered order {order_k}")
 
