@@ -117,6 +117,23 @@ export const useAuthStore = create(
                 }
             },
 
+            // 從後端重新抓取最新使用者資料
+            fetchMe: async () => {
+                const token = get().token
+                if (!token) return
+                try {
+                    const res = await fetch(`${API_BASE}/users/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    if (res.ok) {
+                        const user = await res.json()
+                        set({ user })
+                    }
+                } catch {
+                    console.error('Failed to fetch user data')
+                }
+            },
+
             // 取得訂單歷史
             fetchOrderHistory: async () => {
                 const token = get().token

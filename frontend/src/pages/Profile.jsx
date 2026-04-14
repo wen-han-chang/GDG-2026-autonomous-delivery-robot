@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 
 export default function Profile() {
-    const { user, isLoggedIn, orderHistory, updateName, updatePassword, fetchOrderHistory, updateAvatar } = useAuthStore()
+    const { user, isLoggedIn, orderHistory, updateName, updatePassword, fetchOrderHistory, updateAvatar, fetchMe } = useAuthStore()
     const navigate = useNavigate()
     const fileInputRef = useRef(null)
 
@@ -18,11 +18,12 @@ export default function Profile() {
     // 載入訂單歷史
     useEffect(() => {
         if (isLoggedIn) {
+            fetchMe()
             fetchOrderHistory()
         } else {
             navigate('/login')
         }
-    }, [isLoggedIn, fetchOrderHistory, navigate])
+    }, [isLoggedIn, fetchMe, fetchOrderHistory, navigate])
 
     const handleUpdateName = async (e) => {
         e.preventDefault()
