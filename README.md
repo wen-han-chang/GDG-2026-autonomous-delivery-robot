@@ -64,7 +64,7 @@ Use short, module-based prefixes:
         ```bash
         docker compose up -d
         ```
-    *   這會啟動資料庫 (`robot-db`)、後端 (`robot-backend`) 和前端 (`robot-frontend`) 服務。
+    *   這會啟動資料庫 (`robot-db`)、MQTT Broker (`robot-mqtt`)、後端 (`robot-backend`) 和前端 (`robot-frontend`) 服務。
 
 3.  **確認服務狀態**
     *   您可以執行以下指令查看所有服務是否正常運行：
@@ -76,6 +76,120 @@ Use short, module-based prefixes:
 4.  **訪問應用程式**
     *   **前端 (Web UI)**: 打開您的瀏覽器，訪問 [http://localhost:5173](http://localhost:5173)。
     *   **後端 API 文件**: 訪問 [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI)。
+
+---
+
+## 本地開發啟動（不使用完整 Docker）
+
+只啟動基礎設施（DB + MQTT），後端直接用 uvicorn 在本機跑，方便快速 hot-reload 開發：
+
+```bash
+# 1. 啟動 PostgreSQL 和 MQTT Broker
+docker compose up -d db mosquitto
+
+# 2. 安裝依賴（僅首次或更新後需要）
+pip install -r requirements.txt
+
+# 3. 啟動後端（連接本機 Docker 的 MQTT）
+MQTT_USE_MOCK=false MQTT_BROKER_URL=localhost MQTT_BROKER_PORT=1883 \
+  uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+啟動成功後 terminal 應出現：
+```
+✅ Database tables verified.
+✅ Map loaded: campus_demo
+✅ MQTT bridge started (mock=False, host=localhost:1883)
+```
+
+### MQTT 環境變數
+
+| 變數 | 預設值 | 說明 |
+|------|--------|------|
+| `MQTT_BROKER_URL` | `localhost` | MQTT Broker 位址 |
+| `MQTT_BROKER_PORT` | `1883` | MQTT Broker 埠號 |
+| `MQTT_USE_MOCK` | `true` | `true` = 使用記憶體 Mock（不需 Broker）；`false` = 連接真實 Mosquitto |
+
+> 開發/單元測試時保持 `MQTT_USE_MOCK=true`；實機測試時改為 `false`。
+
+---
+
+## 地圖設定（campus_demo）
+
+地圖定義於 `data/map.json`，目前使用 `campus_demo`，拓樸為 3×3 格狀，所有邊長均為 **75 cm**：
+
+```
+C --- B --- A(HOME)
+|    |    |
+F --- E --- D
+|    |    |
+I --- H --- G
+```
+
+節點座標（單位：cm）：
+
+| 節點 | x   | y   | 說明 |
+|------|-----|-----|------|
+| A    | 0   | 60  | HOME（機器人待機／送達點） |
+| B    | 75  | 60  | |
+| C    | 150 | 60  | |
+| D    | 0   | 135 | |
+| E    | 75  | 135 | |
+| F    | 150 | 135 | |
+| G    | 0   | 210 | |
+| H    | 75  | 210 | |
+| I    | 150 | 210 | |
+
+**HOME_NODE = `"A"`**（定義於 `app/main.py`）：未指定 `to_node` 時，系統自動以 A 作為送達點。
+
+---
+
+## 店家節點對應
+
+每家店的 `location_node` 定義於 `app/routers/stores.py`（`STORE_STORE`）：
+
+| 店家 ID | 店名 | location_node |
+|---------|------|---------------|
+| S001 | 讚野烤肉飯 | B |
+| S002 | 台灣第二味 | C |
+| S003 | 8-11便利商店 | D |
+| S004 | 麥脆雞 | E |
+| S005 | 健康沙拉吧 | F |
+| S006 | 咖啡研究室 | G |
+| S007 | 日式拉麵屋 | H |
+| S008 | 水果天堂 | I |
+| S009 | 披薩工坊 | E |
+
+首次啟動後端時，若資料庫無店家資料，會自動 seed 上述資料。
+
+---
+
+## 訂單 API
+
+### POST `/orders`
+
+支援兩種格式：
+
+**新格式（推薦）** — 提供 `store_id`，系統自動推導取貨節點與 HOME 送達點：
+```json
+{ "map_id": "campus_demo", "store_id": "S001" }
+```
+- `from_node` 自動設為該店的 `location_node`（例如 S001 → `"B"`）
+- `to_node` 自動設為 `HOME_NODE`（`"A"`）
+
+**舊格式（向後相容）** — 直接指定節點：
+```json
+{ "map_id": "campus_demo", "from_node": "E", "to_node": "A" }
+```
+
+若兩者都未提供，回傳 `400: "Provide either from_node or store_id"`。
+
+### 下單流程
+
+1. 計算最短路徑（Dijkstra / A*）
+2. 指派給待送訂單最少的機器人
+3. 透過 MQTT 發布規劃結果至 `robot/{robot_id}/plan`
+4. 透過 WebSocket 廣播 `order_assigned` 事件給前端
 
 ---
 

@@ -128,17 +128,38 @@ def load_map_logic(path: str = "data/map.json"):
         print(f"❌ Failed to load map: {e}")
 
 
+# HOME 節點（機器人停靠/送達點）
+HOME_NODE = "A"
+
 # API: Create Order
 @app.post("/orders", response_model=CreateOrderResp, tags=["訂單"])
 def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     if req.map_id not in GRAPH_STORE:
         raise HTTPException(status_code=404, detail="map_id not loaded")
+
+    # 解析 from_node / to_node
+    from_node = req.from_node
+    to_node = req.to_node
+
+    if req.store_id:
+        # 新格式：從 DB 查詢店家節點
+        store = db.query(StoreDB).filter(StoreDB.id == req.store_id).first()
+        if not store:
+            raise HTTPException(status_code=404, detail=f"store_id '{req.store_id}' not found")
+        from_node = store.location_node
+        if not to_node:
+            to_node = HOME_NODE
+    elif not from_node:
+        raise HTTPException(status_code=400, detail="Provide either from_node or store_id")
+    elif not to_node:
+        to_node = HOME_NODE
+
     g = GRAPH_STORE[req.map_id]
     try:
         if req.algorithm == "astar":
-            route, dist = astar(g, req.from_node, req.to_node)
+            route, dist = astar(g, from_node, to_node)
         else:
-            route, dist = dijkstra(g, req.from_node, req.to_node)
+            route, dist = dijkstra(g, from_node, to_node)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     eta = estimate_eta_sec(route, dist)
@@ -156,8 +177,8 @@ def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_use
         # 自動指派給可用小車（與建立訂單在同一個 transaction）
         dispatch_order_to_robot(
             order_id=order_id,
-            shop_node=req.from_node,
-            drop_node=req.to_node,
+            shop_node=from_node,
+            drop_node=to_node,
             db=db,
         )
 

@@ -24,10 +24,13 @@ class MapData(BaseModel):
 
 class CreateOrderReq(BaseModel):
     map_id: str
-    from_node: str
-    to_node: str
+    # 新格式：提供 store_id，系統自動推導 from_node（店家節點）與 to_node（HOME）
+    store_id: Optional[str] = None
+    # 舊格式（向後相容）：直接指定節點
+    from_node: Optional[str] = None
+    to_node: Optional[str] = None
     algorithm: Literal["dijkstra", "astar"] = "dijkstra"
-    # 新增：購物車資訊 (可選，用於訂單歷史)
+    # 購物車資訊 (可選，用於訂單歷史)
     store_name: Optional[str] = None
     items: Optional[List[str]] = None  # ["招牌便當 x1", "紅茶 x2"]
     total: Optional[int] = None
