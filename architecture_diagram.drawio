@@ -1,0 +1,200 @@
+<mxfile host="65bd71144e">
+    <diagram name="自主智慧物流平台架構圖" id="0">
+        <mxGraphModel dx="1410" dy="998" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0">
+                    <Object as="cells">
+                        <Object as="u">
+                            <Object style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=30;fontStyle=1;" geometry="&lt;mxGeometry x=&quot;200&quot; y=&quot;10&quot; width=&quot;1060&quot; height=&quot;50&quot;/&gt;" as="title"/>
+                            <Object parent="layer1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;540&quot; y=&quot;40&quot; width=&quot;340&quot; height=&quot;72&quot;/&gt;" previous="" as="user_browser"/>
+                            <Object parent="layer2" value="&lt;b&gt;Frontend&lt;/b&gt;&lt;br&gt;React + Vite (Nginx)&lt;br&gt;&lt;font style=&#39;font-size:11px;color:#555&#39;&gt;Port: 80&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;使用者介面，下單與狀態顯示" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;44&quot; width=&quot;210&quot; height=&quot;130&quot;/&gt;" previous="" as="frontend"/>
+                            <Object parent="layer2" value="&lt;b&gt;主後端&lt;/b&gt;&lt;br&gt;FastAPI + SQLAlchemy&lt;br&gt;&lt;font style=&#39;font-size:11px;color:#555&#39;&gt;Port: 8001&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;訂單處理、路徑規劃（Dijkstra/A*）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;250&quot; y=&quot;44&quot; width=&quot;210&quot; height=&quot;130&quot;/&gt;" previous="frontend" as="backend"/>
+                            <Object parent="layer2" value="&lt;b&gt;資料庫&lt;/b&gt;&lt;br&gt;PostgreSQL&lt;br&gt;&lt;font style=&#39;font-size:11px;color:#555&#39;&gt;Port: 5432&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;儲存訂單、商店、商品、使用者資料" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;480&quot; y=&quot;44&quot; width=&quot;210&quot; height=&quot;130&quot;/&gt;" previous="backend" as="database"/>
+                            <Object parent="layer2" value="&lt;b&gt;MQTT Broker&lt;/b&gt;&lt;br&gt;Eclipse Mosquitto&lt;br&gt;&lt;font style=&#39;font-size:12px;color:#555&#39;&gt;Port: 1883&lt;br&gt;正式部署需啟用 TLS&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;訊息中樞，硬體通訊轉發" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;710&quot; y=&quot;44&quot; width=&quot;210&quot; height=&quot;130&quot;/&gt;" previous="database" as="mqtt_broker"/>
+                            <Object parent="layer2" value="&lt;b&gt;機器人服務&lt;/b&gt;&lt;br&gt;FastAPI + AprilTag + OpenCV&lt;br&gt;&lt;font style=&#39;font-size:11px;color:#555&#39;&gt;Port: 8000&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;影像辨識、路徑規劃、下達指令" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;940&quot; y=&quot;44&quot; width=&quot;220&quot; height=&quot;130&quot;/&gt;" previous="mqtt_broker" as="robot_service"/>
+                            <Object parent="layer2" value="&lt;font color=&#39;#7D4E00&#39;&gt;&lt;b&gt;MQTT Bridge 進行中&lt;/b&gt;&lt;/font&gt;&lt;br&gt;主後端通知機器人服務的橋接尚未接通，目前以 Mock 頂替" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" geometry="&lt;mxGeometry x=&quot;250&quot; y=&quot;200&quot; width=&quot;660&quot; height=&quot;56&quot;/&gt;" previous="robot_service" as="mqtt_bridge_note"/>
+                            <Object parent="layer2" previous="arr_fe_be" as="arr_be_db"/>
+                            <Object parent="layer2" previous="arr_be_db" as="arr_rs_mq"/>
+                            <Object parent="layer3" value="&lt;b&gt;硬體 → 雲端（送出）&lt;/b&gt;&lt;br&gt;car/at_node — 偵測到路口&lt;br&gt;car/weight_event — 取餐重量確認&lt;br&gt;car/cam_ip — 相機 IP 回報（retained）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" geometry="&lt;mxGeometry x=&quot;30&quot; y=&quot;44&quot; width=&quot;360&quot; height=&quot;140&quot;/&gt;" previous="" as="to_cloud"/>
+                            <Object parent="layer3" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=15;" geometry="&lt;mxGeometry x=&quot;530&quot; y=&quot;44&quot; width=&quot;360&quot; height=&quot;140&quot;/&gt;" previous="to_cloud" as="mqtt_center"/>
+                            <Object parent="layer3" value="&lt;b&gt;雲端 → 硬體（接收）&lt;/b&gt;&lt;br&gt;car/cmd — 行進指令（left/right/forward）&lt;br&gt;car/node_id — AprilTag 辨識結果&lt;br&gt;car/capture_req — 觸發 CAM 拍照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" geometry="&lt;mxGeometry x=&quot;1030&quot; y=&quot;44&quot; width=&quot;360&quot; height=&quot;140&quot;/&gt;" previous="mqtt_center" as="from_cloud"/>
+                            <Object parent="layer3" previous="from_cloud" as="arr_to_mq"/>
+                            <Object parent="layer3" previous="arr_to_mq" as="arr_mq_from"/>
+                            <Object previous="arr_user_fe" as="arr_broker_center"/>
+                            <Object parent="layer4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=13;" geometry="&lt;mxGeometry x=&quot;110&quot; y=&quot;42&quot; width=&quot;300&quot; height=&quot;124&quot;/&gt;" previous="" as="esp32cam"/>
+                            <Object parent="layer4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=13;" geometry="&lt;mxGeometry x=&quot;1010&quot; y=&quot;42&quot; width=&quot;300&quot; height=&quot;124&quot;/&gt;" previous="esp32cam" as="esp32_main"/>
+                            <Object value="HTTP Port 80" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" previous="layer4" as="arr_user_fe"/>
+                            <Object parent="layer2" value="REST" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" previous="mqtt_bridge_note" as="arr_fe_be"/>
+                            <Object style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=16;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;966&quot; width=&quot;600&quot; height=&quot;30&quot;/&gt;" previous="arr_main_recv" as="phases_label"/>
+                            <Object style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;1006&quot; width=&quot;330&quot; height=&quot;120&quot;/&gt;" as="phase1"/>
+                            <Object style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" geometry="&lt;mxGeometry x=&quot;370&quot; y=&quot;1006&quot; width=&quot;330&quot; height=&quot;120&quot;/&gt;" as="phase2"/>
+                            <Object style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" geometry="&lt;mxGeometry x=&quot;720&quot; y=&quot;1006&quot; width=&quot;330&quot; height=&quot;120&quot;/&gt;" as="phase3"/>
+                            <Object style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" geometry="&lt;mxGeometry x=&quot;1070&quot; y=&quot;1006&quot; width=&quot;330&quot; height=&quot;120&quot;/&gt;" as="phase4"/>
+                        </Object>
+                        <Array as="r">
+                            <add value="layer1_bg"/>
+                            <add value="layer1_label"/>
+                            <add value="layer2_bg"/>
+                            <add value="layer2_label"/>
+                            <add value="arr_be_mock"/>
+                            <add value="arr_rs_mock"/>
+                            <add value="layer3_bg"/>
+                            <add value="layer3_label"/>
+                            <add value="layer4_bg"/>
+                            <add value="layer4_label"/>
+                            <add value="arr_cam_up"/>
+                            <add value="arr_main_up"/>
+                            <add value="arr_down_cam"/>
+                            <add value="arr_down_main"/>
+                        </Array>
+                        <Array as="i">
+                            <Object id="layer1" vertex="1" parent="1" previous="title" style="swimlane;startSize=34;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;rounded=1;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;70&quot; width=&quot;1420&quot; height=&quot;130&quot;/&gt;" value="第一層：使用者層（User Layer）"/>
+                            <Object id="layer2" vertex="1" parent="1" previous="layer1" style="swimlane;startSize=34;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=14;rounded=1;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;220&quot; width=&quot;1420&quot; height=&quot;290&quot;/&gt;" value="第二層：雲端服務層（Cloud Service Layer — AWS EC2 t3.small / Docker Containers）"/>
+                            <Object id="arr_be_rs_mock" edge="1" parent="layer2" previous="arr_rs_mq" source="backend" target="robot_service" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;strokeColor=#d6b656;fontColor=#7D4E00;fontStyle=2;fontSize=11;" geometry="&lt;mxGeometry relative=&quot;1&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;460&quot; y=&quot;228&quot;/&gt;&lt;mxPoint x=&quot;940&quot; y=&quot;228&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;" value="Mock（進行中）"/>
+                            <Object id="layer3" vertex="1" parent="1" previous="layer2" style="swimlane;startSize=34;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=14;rounded=1;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;530&quot; width=&quot;1420&quot; height=&quot;210&quot;/&gt;" value="第三層：通訊層（Communication Layer — MQTT Topics via Mosquitto）"/>
+                            <Object id="layer4" vertex="1" parent="1" previous="layer3" style="swimlane;startSize=34;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=14;rounded=1;" geometry="&lt;mxGeometry x=&quot;20&quot; y=&quot;760&quot; width=&quot;1420&quot; height=&quot;190&quot;/&gt;" value="第四層：硬體執行層（Hardware Execution Layer）"/>
+                            <Object id="arr_cam_send" edge="1" parent="1" previous="arr_broker_center" source="esp32cam" target="mqtt_center" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.6;exitY=0;entryX=0.15;entryY=1;fontSize=11;strokeColor=#b85450;fontColor=#b85450;" geometry="&lt;mxGeometry relative=&quot;1&quot;/&gt;" value="car/cam_ip, car/at_node"/>
+                            <Object id="arr_cam_recv" edge="1" parent="1" previous="arr_cam_send" source="mqtt_center" target="esp32cam" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.1;exitY=1;entryX=0.4;entryY=0;fontSize=11;strokeColor=#82b366;fontColor=#006600;" geometry="&lt;mxGeometry relative=&quot;1&quot;/&gt;" value="car/capture_req"/>
+                            <Object id="arr_main_send" edge="1" parent="1" previous="arr_cam_recv" source="esp32_main" target="mqtt_center" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.4;exitY=0;entryX=0.85;entryY=1;fontSize=11;strokeColor=#b85450;fontColor=#b85450;" geometry="&lt;mxGeometry relative=&quot;1&quot;/&gt;" value="car/at_node, car/weight_event"/>
+                            <Object id="arr_main_recv" edge="1" parent="1" previous="arr_main_send" source="mqtt_center" target="esp32_main" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.9;exitY=1;entryX=0.6;entryY=0;fontSize=11;strokeColor=#82b366;fontColor=#006600;" geometry="&lt;mxGeometry relative=&quot;1&quot;/&gt;" value="car/cmd, car/node_id"/>
+                        </Array>
+                    </Object>
+                    <Object foldingEnabled="false" as="view"/>
+                </mxCell>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="自主智慧物流平台架構圖" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=26;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="10" width="1060" height="44" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer1_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=40;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="64" width="1420" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer1_label" value="第一層：使用者層（User Layer）" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="32" y="68" width="400" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="user_browser" value="&lt;b&gt;使用者瀏覽器&lt;/b&gt;&lt;br&gt;透過前端介面下單、查看訂單狀態" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="570" y="88" width="320" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer2_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;opacity=40;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="194" width="1420" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer2_label" value="第二層：雲端服務層（Cloud Service Layer — AWS EC2 t3.small / Docker Containers）" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="32" y="198" width="800" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="frontend" value="&lt;b&gt;Frontend&lt;/b&gt;&lt;br&gt;React + Vite (Nginx)&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Port: 80&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;使用者介面，下單與狀態顯示" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="224" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="backend" value="&lt;b&gt;主後端&lt;/b&gt;&lt;br&gt;FastAPI + SQLAlchemy&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Port: 8001&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;訂單處理、路徑規劃（Dijkstra/A*）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="280" y="224" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="database" value="&lt;b&gt;資料庫&lt;/b&gt;&lt;br&gt;PostgreSQL&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Port: 5432&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;儲存訂單、商店、商品、使用者資料" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="224" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="mqtt_broker" value="&lt;b&gt;MQTT Broker&lt;/b&gt;&lt;br&gt;Eclipse Mosquitto&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Port: 1883（目前明文，正式需啟用 TLS）&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;訊息中樞，負責所有硬體通訊轉發" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="760" y="224" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="robot_service" value="&lt;b&gt;機器人服務&lt;/b&gt;&lt;br&gt;FastAPI + AprilTag + OpenCV&lt;br&gt;&lt;font style=&#39;font-size:9px&#39;&gt;Port: 8000&lt;/font&gt;&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;接收影像、辨識路口、規劃路徑、下達指令" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="224" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_fe_be" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="frontend" target="backend" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="phases_label" value="操作階段（Operational Phases）" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="850" width="500" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="phase1" value="&lt;b&gt;① 使用者下單&lt;/b&gt;&lt;br&gt;前端送出訂單&lt;br&gt;主後端計算最短路徑&lt;br&gt;存入資料庫" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="886" width="330" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="phase2" value="&lt;b&gt;② 路段循跡&lt;/b&gt;&lt;br&gt;主控 ESP32 沿黑線前進&lt;br&gt;左右感測器同時觸發&lt;br&gt;代表抵達路口" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="886" width="330" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="phase3" value="&lt;b&gt;③ 路口辨識&lt;/b&gt;&lt;br&gt;ESP32-CAM 拍照上傳&lt;br&gt;AprilTag 辨識節點編號&lt;br&gt;NetworkX 規劃下一步&lt;br&gt;MQTT 下達轉向指令" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="886" width="330" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="phase4" value="&lt;b&gt;④ 到位取餐&lt;/b&gt;&lt;br&gt;小車停靠目標節點&lt;br&gt;HX711 偵測重量變化&lt;br&gt;超過 100g 後繼續前進" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="1070" y="886" width="330" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_p1p2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="phase1" target="phase2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_p2p3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="phase2" target="phase3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_p3p4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="phase3" target="phase4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="mqtt_bridge_note" value="&lt;font color=&#39;#7D4E00&#39;&gt;&lt;b&gt;⚠ MQTT Bridge 進行中（Mock）&lt;/b&gt;&lt;/font&gt;&lt;br&gt;主後端 ↔ 機器人服務橋接尚未接通，目前以 Mock 頂替" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;dashed=1;" parent="1" vertex="1">
+                    <mxGeometry x="280" y="358" width="940" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_be_db" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="backend" target="database" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_rs_mq" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="robot_service" target="mqtt_broker" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer3_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;opacity=40;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="484" width="1420" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer3_label" value="第三層：通訊層（Communication Layer — MQTT Topics via Mosquitto）" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="32" y="488" width="700" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="to_cloud" value="&lt;b&gt;送出（Hardware → Cloud）&lt;/b&gt;&lt;br&gt;car/at_node — 偵測到路口&lt;br&gt;car/weight_event — 取餐重量確認&lt;br&gt;car/cam_ip — 相機 IP 回報（retained）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="514" width="320" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="mqtt_center" value="&lt;b&gt;Mosquitto&lt;br&gt;MQTT Broker&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="550" y="519" width="360" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="from_cloud" value="&lt;b&gt;接收（Cloud → Hardware）&lt;/b&gt;&lt;br&gt;car/cmd — 行進指令（left/right/forward）&lt;br&gt;car/node_id — AprilTag 辨識結果&lt;br&gt;car/capture_req — 觸發 CAM 拍照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="514" width="320" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_to_mq" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="to_cloud" target="mqtt_center" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_mq_from" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="mqtt_center" target="from_cloud" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_broker_center" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="mqtt_broker" target="mqtt_center" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="894" y="508"/>
+                            <mxPoint x="747" y="508"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="layer4_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;opacity=40;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="674" width="1420" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="layer4_label" value="第四層：硬體執行層（Hardware Execution Layer）" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="32" y="678" width="500" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="esp32cam" value="&lt;b&gt;ESP32-CAM&lt;/b&gt; (AI Thinker)&lt;br&gt;&lt;font color=&#39;#006600&#39;&gt;[已完成]&lt;/font&gt;&lt;br&gt;拍攝 JPEG 上傳至機器人服務&lt;br&gt;透過 MQTT 接收拍照觸發指令" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="180" y="700" width="280" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="esp32_main" value="&lt;b&gt;主控 ESP32&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#FF8C00&#39;&gt;[進行中]&lt;/font&gt; 雲端 config 待燒錄&lt;br&gt;循跡行進、路口偵測、轉向控制&lt;br&gt;HX711 重量感測，觸發取餐確認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="700" width="280" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_cam_up" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=0;entryX=0.3;entryY=1;" parent="1" source="esp32cam" target="to_cloud" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_main_up" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=0;entryX=0.7;entryY=1;" parent="1" source="esp32_main" target="to_cloud" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_down_cam" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" parent="1" source="from_cloud" target="esp32cam" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_down_main" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.7;exitY=1;entryX=0.5;entryY=0;" parent="1" source="from_cloud" target="esp32_main" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arr_user_fe" value="HTTP (Port 80)" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;" parent="1" source="user_browser" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="138" y="224" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="730" y="186"/>
+                            <mxPoint x="137" y="186"/>
+                            <mxPoint x="137" y="224"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

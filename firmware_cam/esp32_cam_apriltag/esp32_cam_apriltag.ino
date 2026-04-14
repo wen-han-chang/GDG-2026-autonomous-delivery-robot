@@ -1,16 +1,12 @@
 /*
- * ESP32-CAM - 按需拍照 HTTP Server
+ * ESP32-CAM - MQTT 觸發拍照 + HTTP POST 回傳
  *
  * 流程:
- *   後端 Server 收到 car/at_node →
- *   HTTP GET http://<ESP32_CAM_IP>/capture →
- *   拿到 JPEG → Python apriltag 辨識 → 發佈 car/cmd
- *
- * 不再持續傳圖，只有後端主動來抓才拍，省頻寬省電。
- *
- * 依賴函式庫:
- *   - PubSubClient  (傳自己的 IP 給後端用)
- *   - esp32 board package (含 esp_camera, WebServer)
+ *   後端收到 car/at_node →
+ *   發佈 car/capture_req →
+ *   ESP32-CAM 拍照 →
+ *   HTTP POST JPEG 到後端 /upload-image →
+ *   後端 apriltag 辨識 → 發佈 car/cmd
  *
  * Board 設定:
  *   - Board: "AI Thinker ESP32-CAM"
@@ -21,7 +17,7 @@
  */
 
 #include <WiFi.h>
-#include "esp_log.h"
+#include <HTTPClient.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
 #include "esp_camera.h"
@@ -44,14 +40,17 @@
 #define CAM_PIN_VSYNC 25
 #define CAM_PIN_HREF  23
 #define CAM_PIN_PCLK  22
-#define CAM_PIN_FLASH  4  // 補光 LED
+#define CAM_PIN_FLASH  4
 
-#define TOPIC_CAM_IP "car/cam_ip"  // 開機時發佈自己的 IP 給後端
+#define TOPIC_CAM_IP      "car/cam_ip"       // 開機時發佈自己的 IP
+#define TOPIC_CAPTURE_REQ "car/capture_req"  // 訂閱：後端要求拍照
 
 // ─── Globals ──────────────────────────────────────────────────
 WebServer    server(80);
 WiFiClient   wifiClient;
 PubSubClient mqtt(wifiClient);
+
+volatile bool captureRequested = false;  // MQTT callback 設 flag，loop 處理
 
 // ─── Camera Init ──────────────────────────────────────────────
 bool initCamera() {
@@ -76,17 +75,16 @@ bool initCamera() {
   cfg.pin_reset     = CAM_PIN_RESET;
   cfg.xclk_freq_hz  = 20000000;
   cfg.pixel_format  = PIXFORMAT_JPEG;
-  cfg.frame_size    = FRAMESIZE_UXGA;
+  cfg.frame_size    = FRAMESIZE_VGA;   // 640x480，夠辨識 AprilTag 且傳輸快
   cfg.grab_mode     = CAMERA_GRAB_WHEN_EMPTY;
   cfg.fb_location   = CAMERA_FB_IN_PSRAM;
-  cfg.jpeg_quality  = 12;
+  cfg.jpeg_quality  = 20;
   cfg.fb_count      = 1;
   if (psramFound()) {
-    cfg.jpeg_quality = 10;
+    cfg.jpeg_quality = 20;
     cfg.fb_count     = 2;
     cfg.grab_mode    = CAMERA_GRAB_LATEST;
   } else {
-    cfg.frame_size   = FRAMESIZE_SVGA;
     cfg.fb_location  = CAMERA_FB_IN_DRAM;
   }
 
@@ -95,21 +93,20 @@ bool initCamera() {
     Serial.printf("[CAM] Init failed: 0x%x\n", err);
     return false;
   }
-
-  Serial.printf("[CAM] Free heap: %u bytes, PSRAM: %u bytes\n",
-                ESP.getFreeHeap(), ESP.getFreePsram());
   Serial.println("[CAM] Init OK");
   return true;
 }
 
-// ─── HTTP Handler: GET /capture ───────────────────────────────
-// 後端呼叫這個 endpoint 拿一張 JPEG 圖片
-void handleCapture() {
-  // 補光 LED 短暫點亮
-  digitalWrite(CAM_PIN_FLASH, HIGH);
-  delay(80);  // 等曝光穩定
+// ─── 拍照並 POST 到後端 ────────────────────────────────────────
+void captureAndPost() {
+  // 等車體穩定再拍
+  delay(300);
 
-  // 丟棄一張 stale frame
+  // 補光 LED
+  digitalWrite(CAM_PIN_FLASH, HIGH);
+  delay(80);
+
+  // 丟棄 stale frame
   camera_fb_t* discard = esp_camera_fb_get();
   if (discard) esp_camera_fb_return(discard);
   delay(100);
@@ -124,78 +121,106 @@ void handleCapture() {
   digitalWrite(CAM_PIN_FLASH, LOW);
 
   if (!fb) {
-    server.send(500, "text/plain", "Camera capture failed");
     Serial.println("[CAM] Capture failed after 3 retries");
     return;
   }
 
-  // 直接回傳 JPEG binary，後端收到後直接用 cv2.imdecode 處理
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.send_P(200, "image/jpeg",
-                (const char*)fb->buf, fb->len);
+  Serial.printf("[CAM] Captured %u bytes, posting to %s\n", fb->len, BACKEND_UPLOAD_URL);
 
-  Serial.printf("[CAM] Served %u bytes JPEG\n", fb->len);
+  HTTPClient http;
+  http.begin(BACKEND_UPLOAD_URL);
+  http.addHeader("Content-Type", "image/jpeg");
+  http.setTimeout(10000);
+
+  int code = http.POST(fb->buf, fb->len);
+  if (code > 0) {
+    Serial.printf("[POST] Response %d: %s\n", code, http.getString().c_str());
+  } else {
+    Serial.printf("[POST] Failed: %s\n", http.errorToString(code).c_str());
+  }
+
+  http.end();
   esp_camera_fb_return(fb);
 }
 
-// HTTP Handler: GET / (狀態頁，方便 debug)
+// ─── HTTP Handler: GET /capture (本地 debug 用) ───────────────
+void handleCapture() {
+  digitalWrite(CAM_PIN_FLASH, HIGH);
+  delay(80);
+
+  camera_fb_t* discard = esp_camera_fb_get();
+  if (discard) esp_camera_fb_return(discard);
+  delay(100);
+
+  camera_fb_t* fb = nullptr;
+  for (int i = 0; i < 3 && !fb; i++) {
+    fb = esp_camera_fb_get();
+    if (!fb) delay(200);
+  }
+
+  digitalWrite(CAM_PIN_FLASH, LOW);
+
+  if (!fb) {
+    server.send(500, "text/plain", "Camera capture failed");
+    return;
+  }
+
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send_P(200, "image/jpeg", (const char*)fb->buf, fb->len);
+  Serial.printf("[HTTP] Served %u bytes JPEG\n", fb->len);
+  esp_camera_fb_return(fb);
+}
+
 void handleRoot() {
   String ip = WiFi.localIP().toString();
   String html = "<h2>ESP32-CAM Online</h2>"
                 "<p>IP: " + ip + "</p>"
-                "<p><a href='/capture'>Take Photo</a></p>"
+                "<p>Backend: " + String(BACKEND_UPLOAD_URL) + "</p>"
+                "<p><a href='/capture'>Take Photo (debug)</a></p>"
                 "<p><img src='/capture' style='max-width:100%'></p>";
   server.send(200, "text/html", html);
 }
 
-// ─── MQTT ─────────────────────────────────────────────────────
-void mqttConnect() {
-  while (!mqtt.connected()) {
-    Serial.print("[MQTT] Connecting...");
-    if (mqtt.connect(MQTT_CLIENT_ID)) {
-      Serial.println("OK");
-      // 開機時把自己的 IP 發佈出去，讓後端知道去哪裡抓圖
-      String ip = WiFi.localIP().toString();
-      mqtt.publish(TOPIC_CAM_IP, ip.c_str(), true); // retain=true
-      Serial.printf("[CAM] IP published: %s\n", ip.c_str());
-    } else {
-      Serial.printf("failed rc=%d, retry 3s\n", mqtt.state());
-      delay(3000);
-    }
+// ─── MQTT Callback ────────────────────────────────────────────
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  Serial.printf("[MQTT] Received: %s\n", topic);
+  if (strcmp(topic, TOPIC_CAPTURE_REQ) == 0) {
+    captureRequested = true;  // 在 loop() 處理，避免在 callback 做耗時操作
+  }
+}
+
+// ─── MQTT 非阻塞重連 ──────────────────────────────────────────
+void mqttReconnect() {
+  if (mqtt.connected()) return;
+
+  Serial.print("[MQTT] Connecting...");
+  if (mqtt.connect(MQTT_CLIENT_ID)) {
+    Serial.println("OK");
+    mqtt.subscribe(TOPIC_CAPTURE_REQ);
+    Serial.printf("[MQTT] Subscribed: %s\n", TOPIC_CAPTURE_REQ);
+
+    // 發佈自己的 IP（retained）
+    String ip = WiFi.localIP().toString();
+    mqtt.publish(TOPIC_CAM_IP, ip.c_str(), true);
+    Serial.printf("[MQTT] IP published: %s\n", ip.c_str());
+  } else {
+    Serial.printf("failed rc=%d\n", mqtt.state());
   }
 }
 
 // ─── Setup ────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  Serial.setDebugOutput(true);
-  esp_log_level_set("*", ESP_LOG_VERBOSE);
   Serial.println("[Boot] ESP32-CAM Starting...");
 
-  // Flash LED
   pinMode(CAM_PIN_FLASH, OUTPUT);
   digitalWrite(CAM_PIN_FLASH, LOW);
 
-  // Camera
   if (!initCamera()) {
     Serial.println("[Boot] Camera FAILED, halting");
     while (1) delay(1000);
   }
 
-  // WiFi 前先測試 camera
-  {
-    unsigned long t0 = millis();
-    camera_fb_t* fb = esp_camera_fb_get();
-    unsigned long elapsed = millis() - t0;
-    if (fb) {
-      Serial.printf("[PRE-WIFI TEST] Got frame: %u bytes (took %lums)\n", fb->len, elapsed);
-      esp_camera_fb_return(fb);
-    } else {
-      Serial.printf("[PRE-WIFI TEST] No frame (took %lums)\n", elapsed);
-    }
-  }
-
-  // WiFi
   WiFi.setSleep(false);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.print("[WiFi] Connecting");
@@ -204,42 +229,37 @@ void setup() {
     Serial.print(".");
   }
   Serial.printf("\n[WiFi] IP: %s\n", WiFi.localIP().toString().c_str());
-  Serial.printf("[HTTP] Capture URL: http://%s/capture\n",
-                WiFi.localIP().toString().c_str());
 
-  // HTTP Server
+  // HTTP Server (debug)
   server.on("/", HTTP_GET, handleRoot);
   server.on("/capture", HTTP_GET, handleCapture);
   server.begin();
   Serial.println("[HTTP] Server started on port 80");
 
-  xTaskCreate(cameraTestTask, "cam_test", 4096, NULL, 5, NULL);
-
-  // MQTT (只用來發佈 IP)
+  // MQTT
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
-  // mqttConnect();  // 測試時暫時關閉
-}
-
-// ─── Camera test task ─────────────────────────────────────────
-void cameraTestTask(void* param) {
-  vTaskDelay(2000 / portTICK_PERIOD_MS);  // 等 2 秒再開始
-  while (true) {
-    unsigned long t0 = millis();
-    camera_fb_t* fb = esp_camera_fb_get();
-    unsigned long elapsed = millis() - t0;
-    if (fb) {
-      Serial.printf("[TASK] Got frame: %u bytes (took %lums)\n", fb->len, elapsed);
-      esp_camera_fb_return(fb);
-    } else {
-      Serial.printf("[TASK] No frame (took %lums)\n", elapsed);
-    }
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-  }
+  mqtt.setCallback(mqttCallback);
+  mqtt.setBufferSize(256);
+  mqttReconnect();
 }
 
 // ─── Loop ─────────────────────────────────────────────────────
 void loop() {
   server.handleClient();
-  // if (!mqtt.connected()) mqttConnect();  // 測試時暫時關閉
-  // mqtt.loop();
+
+  // MQTT 非阻塞重連（每 5 秒嘗試一次）
+  if (!mqtt.connected()) {
+    static unsigned long lastRetry = 0;
+    if (millis() - lastRetry > 5000) {
+      lastRetry = millis();
+      mqttReconnect();
+    }
+  }
+  mqtt.loop();
+
+  // 處理拍照請求（從 MQTT callback 設的 flag）
+  if (captureRequested) {
+    captureRequested = false;
+    captureAndPost();
+  }
 }
