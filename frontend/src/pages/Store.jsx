@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
+import LiveMap from '../components/LiveMap'
 
 const apiUrl = import.meta.env.VITE_API_URL
 
@@ -8,16 +9,19 @@ export default function Store() {
     const { storeId } = useParams()
     const [store, setStore] = useState(null)
     const [products, setProducts] = useState([])
+    const [mapData, setMapData] = useState(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         Promise.all([
             fetch(`${apiUrl}/stores/${storeId}`).then(res => res.json()),
-            fetch(`${apiUrl}/stores/${storeId}/products`).then(res => res.json())
+            fetch(`${apiUrl}/stores/${storeId}/products`).then(res => res.json()),
+            fetch('/map.json').then(res => res.json()).catch(() => null)
         ])
-            .then(([storeData, productsData]) => {
+            .then(([storeData, productsData, mapJson]) => {
                 setStore(storeData)
                 setProducts(productsData)
+                setMapData(mapJson)
                 setLoading(false)
             })
             .catch(err => {
@@ -74,6 +78,18 @@ export default function Store() {
                     </div>
                 </div>
             </div>
+
+            {mapData && store?.location_node && (
+                <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <h2 className="text-lg font-bold text-gray-800 mb-3">店家位置</h2>
+                    <LiveMap
+                        mapData={mapData}
+                        route={[store.location_node]}
+                        robotPosition={null}
+                    />
+                    <p className="text-sm text-gray-500 mt-2 text-center">節點 {store.location_node}</p>
+                </div>
+            )}
 
             <h2 className="text-xl font-bold text-gray-800 mb-4">菜單</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
