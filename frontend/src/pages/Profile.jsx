@@ -154,13 +154,13 @@ export default function Profile() {
                                     <div className="text-sm text-gray-500">姓名</div>
                                     <div className="font-medium text-gray-800">{user?.name}</div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="bg-gray-50 p-4 rounded-lg min-w-0">
                                     <div className="text-sm text-gray-500">Email</div>
-                                    <div className="font-medium text-gray-800">{user?.email}</div>
+                                    <div className="font-medium text-gray-800 truncate">{user?.email}</div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="bg-gray-50 p-4 rounded-lg min-w-0">
                                     <div className="text-sm text-gray-500">帳號 ID</div>
-                                    <div className="font-medium text-gray-800">{user?.id}</div>
+                                    <div className="font-medium text-gray-800 truncate">{user?.id}</div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                     <div className="text-sm text-gray-500">註冊時間</div>
