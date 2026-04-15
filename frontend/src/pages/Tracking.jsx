@@ -28,17 +28,12 @@ export default function Tracking() {
     // 使用 storedOrder 作為預設值
     const activeOrder = order || (storedOrder?.order_id === orderId ? storedOrder : null)
 
-    // Load map data
+    // Load map data（九宮格節點與邊）
     useEffect(() => {
-        fetch('/nodes.json')
+        fetch('/map.json')
             .then(res => res.json())
-            .then(nodes => {
-                // Build simple map data for MVP
-                const edges = []
-                for (let i = 0; i < nodes.length - 1; i++) {
-                    edges.push({ from: nodes[i].id, to: nodes[i + 1].id })
-                }
-                setMapData({ nodes, edges })
+            .then(data => {
+                setMapData({ nodes: data.nodes, edges: data.edges })
             })
     }, [])
 
