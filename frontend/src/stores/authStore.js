@@ -32,6 +32,14 @@ export const useAuthStore = create(
                         token: data.token,
                         isLoggedIn: true
                     })
+                    // 登入後立即從後端同步最新資料（含頭像）
+                    const meRes = await fetch(`${API_BASE}/users/me`, {
+                        headers: { 'Authorization': `Bearer ${data.token}` }
+                    })
+                    if (meRes.ok) {
+                        const me = await meRes.json()
+                        set({ user: me })
+                    }
                     return { success: true }
                 } catch (err) {
                     console.error('Login error:', err)
@@ -117,6 +125,23 @@ export const useAuthStore = create(
                 }
             },
 
+            // 從後端重新抓取最新使用者資料
+            fetchMe: async () => {
+                const token = get().token
+                if (!token) return
+                try {
+                    const res = await fetch(`${API_BASE}/users/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    if (res.ok) {
+                        const user = await res.json()
+                        set({ user })
+                    }
+                } catch {
+                    console.error('Failed to fetch user data')
+                }
+            },
+
             // 取得訂單歷史
             fetchOrderHistory: async () => {
                 const token = get().token
@@ -132,6 +157,29 @@ export const useAuthStore = create(
                     }
                 } catch {
                     console.error('Failed to fetch order history')
+                }
+            },
+
+            // 更新頭像
+            updateAvatar: async (avatarDataUrl) => {
+                const token = get().token
+                try {
+                    const res = await fetch(`${API_BASE}/users/me/avatar`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ avatar: avatarDataUrl })
+                    })
+                    const data = await res.json()
+                    if (!res.ok) {
+                        return { success: false, error: data.detail || '更新失敗' }
+                    }
+                    set({ user: { ...get().user, avatar: data.avatar } })
+                    return { success: true }
+                } catch {
+                    return { success: false, error: '網路錯誤' }
                 }
             },
 

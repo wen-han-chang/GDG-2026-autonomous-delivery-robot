@@ -11,6 +11,7 @@ class User(Base):
     hashed_password = Column(String)
     name = Column(String) # 補齊註冊需要的 name 欄位
     created_at = Column(DateTime, default=datetime.utcnow)
+    avatar = Column(String, nullable=True)  # base64 圖片資料
 
 # 2. 店家模型
 class StoreDB(Base):

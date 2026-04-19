@@ -15,7 +15,7 @@ STORE_STORE = {
         "rating": 4.5,
         "deliveryTime": "5-10 分鐘",
         "image": "/images/stores/bbq_rice.png",
-        "location_node": "B"
+        "location_node": "A"
     },
     "S002": {
         "id": "S002",
@@ -25,7 +25,7 @@ STORE_STORE = {
         "rating": 4.8,
         "deliveryTime": "3-5 分鐘",
         "image": "/images/stores/tw_second_flavor.png",
-        "location_node": "C"
+        "location_node": "B"
     },
     "S003": {
         "id": "S003",
@@ -35,7 +35,7 @@ STORE_STORE = {
         "rating": 4.2,
         "deliveryTime": "5-8 分鐘",
         "image": "/images/stores/811.png",
-        "location_node": "D"
+        "location_node": "C"
     },
     "S004": {
         "id": "S004",
@@ -45,7 +45,7 @@ STORE_STORE = {
         "rating": 4.3,
         "deliveryTime": "8-12 分鐘",
         "image": "/images/stores/chicken_store.png",
-        "location_node": "E"
+        "location_node": "D"
     },
     "S005": {
         "id": "S005",
@@ -55,7 +55,7 @@ STORE_STORE = {
         "rating": 4.6,
         "deliveryTime": "5-8 分鐘",
         "image": "/images/stores/salad.png",
-        "location_node": "F"
+        "location_node": "E"
     },
     "S006": {
         "id": "S006",
@@ -65,7 +65,7 @@ STORE_STORE = {
         "rating": 4.7,
         "deliveryTime": "5-10 分鐘",
         "image": "/images/stores/coffee_shop.png",
-        "location_node": "G"
+        "location_node": "F"
     },
     "S007": {
         "id": "S007",
@@ -75,7 +75,7 @@ STORE_STORE = {
         "rating": 4.4,
         "deliveryTime": "10-15 分鐘",
         "image": "/images/stores/ramen.png",
-        "location_node": "H"
+        "location_node": "G"
     },
     "S008": {
         "id": "S008",
@@ -85,7 +85,7 @@ STORE_STORE = {
         "rating": 4.5,
         "deliveryTime": "5-8 分鐘",
         "image": "/images/stores/fruits.png",
-        "location_node": "I"
+        "location_node": "H"
     },
     "S009": {
         "id": "S009",
@@ -95,7 +95,7 @@ STORE_STORE = {
         "rating": 4.6,
         "deliveryTime": "12-18 分鐘",
         "image": "/images/stores/pizza_store.png",
-        "location_node": "E"
+        "location_node": "I"
     }
 }
 

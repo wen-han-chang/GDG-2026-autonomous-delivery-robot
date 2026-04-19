@@ -48,8 +48,8 @@ export default function Checkout() {
             }
             const token = useAuthStore.getState().token
 
-            // MVP: 假設店家在 A 點，配送到使用者選的節點
-            const order = await createOrder('campus_demo', 'A', selectedNode, orderInfo, token)
+            const storeId = items[0]?.store_id || null
+            const order = await createOrder('campus_demo', storeId, selectedNode, orderInfo, token)
             setOrder(order)
             setSubmitted(true)
             clearCart()

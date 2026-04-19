@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function LiveMap({ mapData, robotPosition, route }) {
+export default function LiveMap({ mapData, robotPosition, route, size = 'lg' }) {
     const canvasRef = useRef(null)
 
     useEffect(() => {
@@ -8,14 +8,20 @@ export default function LiveMap({ mapData, robotPosition, route }) {
 
         const canvas = canvasRef.current
         const ctx = canvas.getContext('2d')
-        const scale = 4
+        const scale = 2
         const offsetX = 50
-        const offsetY = 100
+        const offsetY = 50
 
-        // Clear canvas
+        // 將地圖座標轉為 canvas 座標（y 從最小值開始正規化）
+        const yMin = Math.min(...mapData.nodes.map(n => n.y))
+        const toCanvas = (node) => ({
+            x: node.x * scale + offsetX,
+            y: (node.y - yMin) * scale + offsetY,
+        })
+
         ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-        // Draw edges (paths)
+        // 畫邊線
         ctx.strokeStyle = '#e5e7eb'
         ctx.lineWidth = 8
         ctx.lineCap = 'round'
@@ -25,15 +31,17 @@ export default function LiveMap({ mapData, robotPosition, route }) {
                 const from = mapData.nodes.find(n => n.id === edge.from)
                 const to = mapData.nodes.find(n => n.id === edge.to)
                 if (from && to) {
+                    const cf = toCanvas(from)
+                    const ct = toCanvas(to)
                     ctx.beginPath()
-                    ctx.moveTo(from.x * scale + offsetX, offsetY)
-                    ctx.lineTo(to.x * scale + offsetX, offsetY)
+                    ctx.moveTo(cf.x, cf.y)
+                    ctx.lineTo(ct.x, ct.y)
                     ctx.stroke()
                 }
             })
         }
 
-        // Highlight route if exists
+        // 標示路線
         if (route && route.length > 1) {
             ctx.strokeStyle = '#f97316'
             ctx.lineWidth = 6
@@ -41,49 +49,47 @@ export default function LiveMap({ mapData, robotPosition, route }) {
                 const from = mapData.nodes.find(n => n.id === route[i])
                 const to = mapData.nodes.find(n => n.id === route[i + 1])
                 if (from && to) {
+                    const cf = toCanvas(from)
+                    const ct = toCanvas(to)
                     ctx.beginPath()
-                    ctx.moveTo(from.x * scale + offsetX, offsetY)
-                    ctx.lineTo(to.x * scale + offsetX, offsetY)
+                    ctx.moveTo(cf.x, cf.y)
+                    ctx.lineTo(ct.x, ct.y)
                     ctx.stroke()
                 }
             }
         }
 
-        // Draw nodes
+        // 畫節點
         mapData.nodes.forEach(node => {
-            const x = node.x * scale + offsetX
-            const y = offsetY
+            const { x, y } = toCanvas(node)
 
-            // Node circle
             ctx.fillStyle = route?.includes(node.id) ? '#f97316' : '#374151'
             ctx.beginPath()
             ctx.arc(x, y, 12, 0, Math.PI * 2)
             ctx.fill()
 
-            // Node label
             ctx.fillStyle = '#374151'
-            ctx.font = 'bold 14px sans-serif'
+            ctx.font = 'bold 13px sans-serif'
             ctx.textAlign = 'center'
-            ctx.fillText(node.name || node.id, x, y + 35)
+            ctx.fillText(node.name || node.id, x, y + 28)
         })
 
-        // Draw robot
+        // 畫機器人
         if (robotPosition) {
-            const x = robotPosition.x * scale + offsetX
-            const y = offsetY
+            const node = mapData.nodes.find(n => n.id === robotPosition.node)
+            if (node) {
+                const { x, y } = toCanvas(node)
+                ctx.fillStyle = '#ef4444'
+                ctx.beginPath()
+                ctx.arc(x, y, 16, 0, Math.PI * 2)
+                ctx.fill()
 
-            // Robot circle
-            ctx.fillStyle = '#ef4444'
-            ctx.beginPath()
-            ctx.arc(x, y, 16, 0, Math.PI * 2)
-            ctx.fill()
-
-            // Robot icon
-            ctx.fillStyle = 'white'
-            ctx.font = '16px sans-serif'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'middle'
-            ctx.fillText('🚗', x, y)
+                ctx.fillStyle = 'white'
+                ctx.font = '16px sans-serif'
+                ctx.textAlign = 'center'
+                ctx.textBaseline = 'middle'
+                ctx.fillText('🚗', x, y)
+            }
         }
     }, [mapData, robotPosition, route])
 
@@ -91,9 +97,9 @@ export default function LiveMap({ mapData, robotPosition, route }) {
         <div className="bg-gray-50 rounded-xl p-4">
             <canvas
                 ref={canvasRef}
-                width={700}
-                height={200}
-                className="w-full"
+                width={450}
+                height={450}
+                className={size === 'sm' ? 'max-w-[300px] mx-auto block' : 'w-full'}
             />
         </div>
     )

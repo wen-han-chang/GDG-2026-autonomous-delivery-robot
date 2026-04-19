@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 
 export default function Profile() {
-    const { user, isLoggedIn, orderHistory, updateName, updatePassword, fetchOrderHistory } = useAuthStore()
+    const { user, isLoggedIn, orderHistory, updateName, updatePassword, fetchOrderHistory, updateAvatar, fetchMe } = useAuthStore()
     const navigate = useNavigate()
+    const fileInputRef = useRef(null)
 
     const [activeTab, setActiveTab] = useState('info')
     const [newName, setNewName] = useState(user?.name || '')
@@ -17,11 +18,12 @@ export default function Profile() {
     // 載入訂單歷史
     useEffect(() => {
         if (isLoggedIn) {
+            fetchMe()
             fetchOrderHistory()
         } else {
             navigate('/login')
         }
-    }, [isLoggedIn, fetchOrderHistory, navigate])
+    }, [isLoggedIn, fetchMe, fetchOrderHistory, navigate])
 
     const handleUpdateName = async (e) => {
         e.preventDefault()
@@ -71,6 +73,20 @@ export default function Profile() {
         }
     }
 
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click()
+    }
+
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = async (ev) => {
+            await updateAvatar(ev.target.result)
+        }
+        reader.readAsDataURL(file)
+    }
+
     const formatDate = (dateStr) => {
         const date = new Date(dateStr)
         return date.toLocaleDateString('zh-TW', {
@@ -92,9 +108,26 @@ export default function Profile() {
                 {/* Header */}
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl">
-                            👤
+                        <div
+                            className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl cursor-pointer overflow-hidden relative group"
+                            onClick={handleAvatarClick}
+                            title="點擊更換頭像"
+                        >
+                            {user?.avatar
+                                ? <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                                : <span>👤</span>
+                            }
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <span className="text-white text-xs">更換</span>
+                            </div>
                         </div>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarChange}
+                        />
                         <div>
                             <h1 className="text-2xl font-bold">{user?.name}</h1>
                             <p className="text-orange-100">{user?.email}</p>
@@ -154,13 +187,13 @@ export default function Profile() {
                                     <div className="text-sm text-gray-500">姓名</div>
                                     <div className="font-medium text-gray-800">{user?.name}</div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="bg-gray-50 p-4 rounded-lg min-w-0">
                                     <div className="text-sm text-gray-500">Email</div>
-                                    <div className="font-medium text-gray-800">{user?.email}</div>
+                                    <div className="font-medium text-gray-800 truncate">{user?.email}</div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="bg-gray-50 p-4 rounded-lg min-w-0">
                                     <div className="text-sm text-gray-500">帳號 ID</div>
-                                    <div className="font-medium text-gray-800">{user?.id}</div>
+                                    <div className="font-medium text-gray-800 truncate">{user?.id}</div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                     <div className="text-sm text-gray-500">註冊時間</div>

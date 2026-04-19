@@ -11,7 +11,7 @@ export default function Tracking() {
     const [mapData, setMapData] = useState(null)
     const [order, setOrder] = useState(null)
 
-    const { robotState, connected } = useWebSocket(orderId)
+    const { robotState, connected, error } = useWebSocket(orderId)
     const storedOrder = useOrderStore((state) => state.currentOrder)
 
     // Load order data
@@ -28,17 +28,12 @@ export default function Tracking() {
     // 使用 storedOrder 作為預設值
     const activeOrder = order || (storedOrder?.order_id === orderId ? storedOrder : null)
 
-    // Load map data
+    // Load map data（九宮格節點與邊）
     useEffect(() => {
-        fetch('/nodes.json')
+        fetch('/map.json')
             .then(res => res.json())
-            .then(nodes => {
-                // Build simple map data for MVP
-                const edges = []
-                for (let i = 0; i < nodes.length - 1; i++) {
-                    edges.push({ from: nodes[i].id, to: nodes[i + 1].id })
-                }
-                setMapData({ nodes, edges })
+            .then(data => {
+                setMapData({ nodes: data.nodes, edges: data.edges })
             })
     }, [])
 
@@ -112,6 +107,18 @@ export default function Tracking() {
                                     <span className="text-green-500 text-sm flex items-center gap-1">
                                         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                                         即時連線中
+                                    </span>
+                                )}
+                                {!connected && !error && (
+                                    <span className="text-yellow-500 text-sm flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                                        連線中...
+                                    </span>
+                                )}
+                                {error && (
+                                    <span className="text-red-500 text-sm flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                        {error}
                                     </span>
                                 )}
                             </div>

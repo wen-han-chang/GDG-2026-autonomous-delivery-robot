@@ -30,9 +30,15 @@ export default function Navbar() {
                             <div className="flex items-center gap-3">
                                 <Link
                                     to="/profile"
-                                    className="text-gray-600 hover:text-orange-600 text-sm flex items-center gap-1 transition-colors"
+                                    className="text-gray-600 hover:text-orange-600 text-sm flex items-center gap-2 transition-colors"
                                 >
-                                    👤 {user?.name}
+                                    <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-sm">
+                                        {user?.avatar
+                                            ? <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                                            : <span>👤</span>
+                                        }
+                                    </div>
+                                    {user?.name}
                                 </Link>
                                 <button
                                     onClick={() => setShowLogoutModal(true)}

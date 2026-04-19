@@ -1,0 +1,29 @@
+{
+  "map_id": "campus_demo",
+  "unit": "cm",
+  "nodes": [
+    { "id": "A", "x": 0,   "y": 60  },
+    { "id": "B", "x": 75,  "y": 60  },
+    { "id": "C", "x": 150, "y": 60  },
+    { "id": "D", "x": 0,   "y": 135 },
+    { "id": "E", "x": 75,  "y": 135 },
+    { "id": "F", "x": 150, "y": 135 },
+    { "id": "G", "x": 0,   "y": 210 },
+    { "id": "H", "x": 75,  "y": 210 },
+    { "id": "I", "x": 150, "y": 210 }
+  ],
+  "edges": [
+    { "from": "A", "to": "B", "bidirectional": true },
+    { "from": "B", "to": "C", "bidirectional": true },
+    { "from": "A", "to": "D", "bidirectional": true },
+    { "from": "B", "to": "E", "bidirectional": true },
+    { "from": "C", "to": "F", "bidirectional": true },
+    { "from": "D", "to": "E", "bidirectional": true },
+    { "from": "E", "to": "F", "bidirectional": true },
+    { "from": "D", "to": "G", "bidirectional": true },
+    { "from": "E", "to": "H", "bidirectional": true },
+    { "from": "F", "to": "I", "bidirectional": true },
+    { "from": "G", "to": "H", "bidirectional": true },
+    { "from": "H", "to": "I", "bidirectional": true }
+  ]
+}

@@ -1,6 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_URL
 
-export async function createOrder(mapId, fromNode, toNode, orderInfo = {}, token) {
+export async function createOrder(mapId, storeId, toNode, orderInfo = {}, token) {
     const headers = { 'Content-Type': 'application/json' }
     if (token) {
         headers['Authorization'] = `Bearer ${token}`
@@ -11,7 +11,7 @@ export async function createOrder(mapId, fromNode, toNode, orderInfo = {}, token
         headers,
         body: JSON.stringify({
             map_id: mapId,
-            from_node: fromNode,
+            store_id: storeId,
             to_node: toNode,
             store_name: orderInfo.storeName || null,
             items: orderInfo.items || null,

@@ -3,11 +3,16 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from typing import List
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.routers.auth import SECRET_KEY, ALGORITHM, verify_password, get_password_hash
 from app.models import UserResponse, UserUpdate, OrderHistoryItem
 from app.database import get_db
 from app.sql_models import User, OrderDB
+
+
+class AvatarUpdate(BaseModel):
+    avatar: str  # base64 data URL
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -43,7 +48,8 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "id": current_user.email,
         "email": current_user.email,
         "name": current_user.username,
-        "createdAt": current_user.created_at.isoformat()
+        "createdAt": current_user.created_at.isoformat(),
+        "avatar": current_user.avatar
     }
 
 # 4. 修改姓名或密碼
@@ -76,8 +82,25 @@ def update_user_me(
             "id": current_user.email,
             "email": current_user.email,
             "name": current_user.username,
-            "createdAt": current_user.created_at.isoformat()
+            "createdAt": current_user.created_at.isoformat(),
+            "avatar": current_user.avatar
         }
+    }
+
+
+# 6. 更新頭像
+@router.put("/me/avatar")
+def update_avatar(
+    body: AvatarUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.avatar = body.avatar
+    db.commit()
+    db.refresh(current_user)
+    return {
+        "success": True,
+        "avatar": current_user.avatar
     }
 
 # 5. 取得訂單歷史

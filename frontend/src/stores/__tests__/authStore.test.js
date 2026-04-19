@@ -11,10 +11,15 @@ beforeEach(() => {
 
 describe('login', () => {
     it('sets user and token on success', async () => {
-        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-            ok: true,
-            json: async () => ({ user: mockUser, token: mockToken })
-        })
+        vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ user: mockUser, token: mockToken })
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => mockUser
+            })
         const result = await useAuthStore.getState().login('test@test.com', 'pass')
         expect(result).toEqual({ success: true })
         expect(useAuthStore.getState().user).toEqual(mockUser)

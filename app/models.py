@@ -103,6 +103,7 @@ class UserLogin(BaseModel):
 class UserResponse(UserBase):
     id: str
     createdAt: str  # 前端是用 String (ISO format)
+    avatar: Optional[str] = None
 
 # 修改資料用
 class UserUpdate(BaseModel):
