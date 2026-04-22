@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderStore } from '../stores/orderStore'
 import { useAuthStore } from '../stores/authStore'
@@ -9,36 +9,6 @@ import LiveMap from '../components/LiveMap'
 const API_BASE = import.meta.env.VITE_API_URL
 const DEFAULT_AVG_SPEED_CM_S = 12.0
 const ROUTE_BREAK = '__ROUTE_BREAK__'
-
-function formatPlannerAction(action, mapData) {
-    if (!action || !mapData?.nodes?.length) return action
-
-    const idxToNodeId = (idxText) => {
-        const idx = Number.parseInt(idxText, 10)
-        if (Number.isNaN(idx) || idx < 0 || idx >= mapData.nodes.length) return null
-        return mapData.nodes[idx].id
-    }
-
-    // 示例："PICKUP order 1 at shop node 1"
-    const pickupMatch = action.match(/^(.*at shop node )([0-9]+)$/)
-    if (pickupMatch) {
-        const nodeId = idxToNodeId(pickupMatch[2])
-        if (nodeId) {
-            return `${pickupMatch[1]}${nodeId}`
-        }
-    }
-
-    // 示例："DELIVER order 1 at node 4"
-    const deliverMatch = action.match(/^(.*at node )([0-9]+)$/)
-    if (deliverMatch) {
-        const nodeId = idxToNodeId(deliverMatch[2])
-        if (nodeId) {
-            return `${deliverMatch[1]}${nodeId}`
-        }
-    }
-
-    return action
-}
 
 function buildAdj(mapData) {
     const nodesById = new Map((mapData.nodes || []).map(n => [n.id, n]))
@@ -200,7 +170,7 @@ function readBatchMeta(orderId) {
             batch_order_ids: parsed.batch_order_ids,
             batch_orders: Array.isArray(parsed.batch_orders) ? parsed.batch_orders : [],
         }
-    } catch (_err) {
+    } catch {
         return null
     }
 }
@@ -211,8 +181,8 @@ export default function Tracking() {
     const [order, setOrder] = useState(null)
     const [plannerStatus, setPlannerStatus] = useState(null)
     const [batchProgress, setBatchProgress] = useState(null)
-    const [completionLocked, setCompletionLocked] = useState(false)
     const [orderNotFound, setOrderNotFound] = useState(false)
+    const completionLockedOrderIdsRef = useRef(new Set())
 
     const storedOrder = useOrderStore((state) => state.currentOrder)
     const websocketRobotId = order?.assigned_robot_id || storedOrder?.assigned_robot_id || null
@@ -222,12 +192,6 @@ export default function Tracking() {
     // Load order data（首次 + 輪詢，確保自動清單後狀態會更新）
     useEffect(() => {
         const token = useAuthStore.getState().token
-        if (storedOrder?.order_id === orderId) {
-            setOrder({
-                ...storedOrder,
-                ...(batchMeta || {}),
-            })
-        }
 
         let cancelled = false
 
@@ -298,7 +262,7 @@ export default function Tracking() {
                 if (!cancelled) {
                     setPlannerStatus(data)
                 }
-            } catch (_err) {
+            } catch {
                 // Ignore intermittent polling errors.
             }
         }
@@ -327,18 +291,8 @@ export default function Tracking() {
         const ids = activeOrder?.batch_order_ids
         const isMulti = !!activeOrder?.is_multi_store
         if (!isMulti || !Array.isArray(ids) || ids.length === 0) {
-            setBatchProgress(null)
             return
         }
-
-        setBatchProgress({
-            total: ids.length,
-            deliveredCount: 0,
-            pickedCount: 0,
-            assignedCount: 0,
-            allDelivered: false,
-            details: [],
-        })
 
         let cancelled = false
         const token = useAuthStore.getState().token
@@ -375,7 +329,7 @@ export default function Tracking() {
                     allDelivered: allGoneAfterCleanup || ((deliveredCount + notFoundCount) === ids.length),
                     details,
                 })
-            } catch (_err) {
+            } catch {
                 if (!cancelled) {
                     setBatchProgress((prev) => prev ? {
                         ...prev,
@@ -426,17 +380,10 @@ export default function Tracking() {
     const ownOrderCompleted = isMultiStore
         ? !!batchProgress?.allDelivered || cleanupCompleted
         : activeOrder?.status === 'DELIVERED' || cleanupCompleted
-    const isCompleted = completionLocked || ownOrderCompleted
-
-    useEffect(() => {
-        setCompletionLocked(false)
-    }, [orderId])
-
-    useEffect(() => {
-        if (ownOrderCompleted) {
-            setCompletionLocked(true)
-        }
-    }, [ownOrderCompleted])
+    if (ownOrderCompleted) {
+        completionLockedOrderIdsRef.current.add(orderId)
+    }
+    const isCompleted = completionLockedOrderIdsRef.current.has(orderId) || ownOrderCompleted
 
     const orderRouteForMap = useMemo(() => {
         if (!orderRoute?.length) return []
