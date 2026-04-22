@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderStore } from '../stores/orderStore'
 import { useAuthStore } from '../stores/authStore'
@@ -182,7 +182,6 @@ export default function Tracking() {
     const [plannerStatus, setPlannerStatus] = useState(null)
     const [batchProgress, setBatchProgress] = useState(null)
     const [orderNotFound, setOrderNotFound] = useState(false)
-    const completionLockedOrderIdsRef = useRef(new Set())
 
     const storedOrder = useOrderStore((state) => state.currentOrder)
     const websocketRobotId = order?.assigned_robot_id || storedOrder?.assigned_robot_id || null
@@ -380,10 +379,26 @@ export default function Tracking() {
     const ownOrderCompleted = isMultiStore
         ? !!batchProgress?.allDelivered || cleanupCompleted
         : activeOrder?.status === 'DELIVERED' || cleanupCompleted
-    if (ownOrderCompleted) {
-        completionLockedOrderIdsRef.current.add(orderId)
-    }
-    const isCompleted = completionLockedOrderIdsRef.current.has(orderId) || ownOrderCompleted
+    const completionLockKey = `tracking_completed_${orderId}`
+
+    useEffect(() => {
+        if (!ownOrderCompleted) return
+        try {
+            sessionStorage.setItem(completionLockKey, '1')
+        } catch {
+            // Ignore storage failures and fallback to runtime completion state.
+        }
+    }, [ownOrderCompleted, completionLockKey])
+
+    const completionLocked = useMemo(() => {
+        try {
+            return sessionStorage.getItem(completionLockKey) === '1'
+        } catch {
+            return false
+        }
+    }, [completionLockKey, ownOrderCompleted])
+
+    const isCompleted = completionLocked || ownOrderCompleted
 
     const orderRouteForMap = useMemo(() => {
         if (!orderRoute?.length) return []
