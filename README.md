@@ -109,15 +109,39 @@ docker compose ps
 docker compose logs --tail 80 backend
 
 # API 文件
-curl http://localhost:8001/docs
+curl.exe -s http://localhost:8001/docs > NUL
 
 # 規劃狀態（若尚未 init 可能回 not found，屬正常）
-curl "http://localhost:8001/planner/status?robot_id=R001"
+curl.exe -s "http://localhost:8001/planner/status?robot_id=R001"
+
+# 店家清單（應回傳 S001~S009）
+curl.exe -s http://localhost:8001/stores
 ```
+
+若你使用 PowerShell，也可改用：
+
+```powershell
+Invoke-RestMethod "http://localhost:8001/stores"
+```
+
+`curl` 在 PowerShell 中是 `Invoke-WebRequest` 別名，可能出現「指令碼執行風險」提示。
+建議直接用 `curl.exe` 或 `Invoke-RestMethod`，避免互動提示中斷流程。
 
 瀏覽器開啟：
 - 前端 UI：http://localhost
 - 後端 Swagger：http://localhost:8001/docs
+
+### 4.1 常見問題：前端顯示「沒有符合的店家」
+
+若 `/stores` 回 `500` 且 backend 日誌出現 `relation "stores" does not exist`：
+
+```bash
+docker compose restart backend
+curl.exe -s http://localhost:8001/stores
+```
+
+原因通常是首次啟動時 DB 尚未完全就緒，導致 backend 啟動期建表流程沒成功；
+重啟 backend 後會再次執行建表與 seed，通常即可恢復。
 
 ### 5. 重置小車到可實作狀態
 
