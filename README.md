@@ -52,6 +52,124 @@ Use short, module-based prefixes:
 
 ---
 
+## 新環境完整重建（重新下載專案）
+
+這份流程給「第一次下載專案」的人，照做可以直接完成：
+- 全部 Docker 服務重建
+- 後端/前端可用
+- 小車狀態可重置到可實作狀態
+- 可重現 MQTT 訂閱失敗情境
+
+### 0. 前置需求
+
+- Docker Desktop（含 Docker Compose）
+- Git
+- Windows 使用者建議 PowerShell 7+（Windows PowerShell 5.1 也可）
+
+### 1. 下載並進入專案
+
+```bash
+git clone <your-repo-url>
+cd GDG-2026-autonomous-delivery-robot
+```
+
+### 2. 建立 `.env`
+
+```bash
+# Linux/macOS
+cp .env.example .env
+
+# Windows PowerShell
+Copy-Item .env.example .env
+```
+
+至少確認以下欄位：
+
+```dotenv
+JWT_SECRET_KEY=change_me_to_a_random_secret
+FRONTEND_VITE_API_URL=http://localhost:8001
+ALLOWED_ORIGINS=http://localhost,http://127.0.0.1,http://localhost:80
+```
+
+### 3. 全量重建全部 Docker（乾淨重建）
+
+```bash
+docker compose down -v --remove-orphans
+docker compose build --no-cache
+docker compose up -d
+docker compose ps
+```
+
+預期會啟動 4 個服務：`db`、`mosquitto`、`backend`、`frontend`。
+
+### 4. 基本健康檢查
+
+```bash
+# 查看後端最近日誌
+docker compose logs --tail 80 backend
+
+# API 文件
+curl http://localhost:8001/docs
+
+# 規劃狀態（若尚未 init 可能回 not found，屬正常）
+curl "http://localhost:8001/planner/status?robot_id=R001"
+```
+
+瀏覽器開啟：
+- 前端 UI：http://localhost
+- 後端 Swagger：http://localhost:8001/docs
+
+### 5. 重置小車到可實作狀態
+
+```powershell
+.\tools\reset-robot-state.ps1 -RobotId R001 -StartNode A
+```
+
+這個腳本會：
+- 清空 `orders`（可用 `-SkipOrderClear` 保留）
+- 將 `robot_states` 重置到指定節點
+- 重啟 backend 並印出 `planner/status`
+
+### 6. MQTT 訂閱失敗模擬（實機 MQTT 模式）
+
+若要模擬「小車訂閱失敗／broker 中斷」，請先把 backend 切到真實 MQTT：
+
+在 `.env` 新增（或修改）
+
+```dotenv
+MQTT_USE_MOCK=false
+MQTT_BROKER_URL=mosquitto
+MQTT_BROKER_PORT=1883
+```
+
+套用設定：
+
+```bash
+docker compose up -d --build backend mosquitto
+docker compose logs --tail 50 backend
+```
+
+你應看到類似：`MQTT bridge started (mock=False, host=mosquitto:1883)`。
+
+開始模擬故障：
+
+```bash
+docker compose stop mosquitto
+docker compose logs -f backend
+```
+
+此時建立新訂單/重規劃請求即可觀察 broker 不可用情境。
+
+恢復：
+
+```bash
+docker compose start mosquitto
+docker compose restart backend
+docker compose logs --tail 80 backend
+```
+
+---
+
 ## Quick Start (Docker Compose)
 
 本專案建議使用 Docker Compose 進行開發環境的快速啟動與管理。
@@ -74,8 +192,26 @@ Use short, module-based prefixes:
     *   確認所有服務的 `STATUS` 都是 `Up`。
 
 4.  **訪問應用程式**
-    *   **前端 (Web UI)**: 打開您的瀏覽器，訪問 [http://localhost:5173](http://localhost:5173)。
-    *   **後端 API 文件**: 訪問 [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI)。
+    *   **前端 (Web UI)**: 打開您的瀏覽器，訪問 [http://localhost](http://localhost)。
+    *   **後端 API 文件**: 訪問 [http://localhost:8001/docs](http://localhost:8001/docs) (Swagger UI)。
+
+### EC2 部署注意事項（重要）
+
+若要讓所有人可透過 EC2 公網存取，請先設定 `.env`：
+
+```bash
+FRONTEND_VITE_API_URL=http://<你的EC2公網IP或網域>:8001
+ALLOWED_ORIGINS=http://<你的EC2公網IP或網域>
+```
+
+`FRONTEND_VITE_API_URL` 是前端 build-time 變數，修改後必須重建前端映像：
+
+```bash
+docker compose build frontend
+docker compose up -d frontend backend
+```
+
+若未重建前端，使用者可能看到「可瀏覽店家但下單失敗」，因為前端仍呼叫舊的 API 位址。
 
 ---
 
@@ -183,6 +319,35 @@ I --- H --- G
 ```
 
 若兩者都未提供，回傳 `400: "Provide either from_node or store_id"`。
+
+### POST `/orders/multi`
+
+一次下多店訂單（每個店家會建立一筆實際訂單並加入同一波派送佇列）：
+
+```json
+{
+    "map_id": "campus_demo",
+    "store_ids": ["S001", "S002", "S006"],
+    "to_node": "A",
+    "items_by_store": {
+        "S001": ["招牌便當 x1"],
+        "S002": ["紅茶 x2"],
+        "S006": ["拿鐵 x1"]
+    },
+    "total": 255
+}
+```
+
+回傳會包含：
+- `order_ids`: 這次多店下單產生的所有訂單 ID
+- `orders`: 每筆訂單的路線與 ETA
+- `total_distance_cm`: 所有子訂單距離總和
+- `max_eta_sec`: 子訂單中最長 ETA
+
+### 固定節點規則（目前版本）
+
+目前規劃流程僅使用地圖內既有節點（`data/map.json`），
+`from_node` / `to_node` 必須是已存在的節點 ID；不使用虛擬節點吸附（virtual node snapping）。
 
 ### 下單流程
 

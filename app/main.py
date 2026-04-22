@@ -7,13 +7,21 @@ import os
 import uuid
 import json
 from pathlib import Path
+from typing import List, Tuple
 
 # 資料庫相關
 from .database import engine, Base, get_db, SessionLocal
 from .sql_models import OrderDB, StoreDB, ProductDB, RobotStateDB
 
 # Pydantic Models & Logic
-from .models import MapData, CreateOrderReq, CreateOrderResp
+from .models import (
+    MapData,
+    CreateOrderReq,
+    CreateOrderResp,
+    CreateMultiOrderReq,
+    CreateMultiOrderResp,
+    SingleOrderSummary,
+)
 from .graph import build_graph, dijkstra, astar
 from .services import estimate_eta_sec
 from .state import MAP_STORE, GRAPH_STORE
@@ -59,12 +67,32 @@ async def lifespan(app: FastAPI):
             robot_states = db.query(RobotStateDB).all()
             planner_state = get_global_state()
             for rs in robot_states:
+                active_orders_count = (
+                    db.query(OrderDB)
+                    .filter(
+                        OrderDB.assigned_robot_id == rs.robot_id,
+                        OrderDB.status != "DELIVERED",
+                    )
+                    .count()
+                )
+
+                # 若沒有任何未完成訂單，清掉殘留規劃，避免重啟後看到舊 action/stop
+                if active_orders_count == 0:
+                    rs.next_deliver_k = 1
+                    rs.picked_mask = 0
+                    rs.plan_actions = []
+                    rs.plan_stops = []
+                    rs.last_plan_cost = 0
+
                 robot = planner_state.add_robot(rs.robot_id, rs.current_node)
                 robot.next_deliver_k = rs.next_deliver_k
                 robot.picked_mask = rs.picked_mask
                 robot.plan_actions = rs.plan_actions or []
                 robot.plan_stops = rs.plan_stops or []
                 robot.last_plan_cost = rs.last_plan_cost
+
+            if robot_states:
+                db.commit()
             if robot_states:
                 print(f"✅ Restored {len(robot_states)} robot state(s) from DB.")
     except Exception as e:
@@ -131,18 +159,26 @@ def load_map_logic(path: str = "data/map.json"):
 # HOME 節點（機器人停靠/送達點）
 HOME_NODE = "A"
 
-# API: Create Order
-@app.post("/orders", response_model=CreateOrderResp, tags=["訂單"])
-def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    if req.map_id not in GRAPH_STORE:
-        raise HTTPException(status_code=404, detail="map_id not loaded")
 
-    # 解析 from_node / to_node
+def _calculate_route(g, algorithm: str, from_node: str, to_node: str):
+    """固定節點版路徑計算：僅允許 map 內既有節點，不做虛擬節點吸附。"""
+    if from_node not in g.nodes or to_node not in g.nodes:
+        raise HTTPException(status_code=400, detail="from_node/to_node must be existing map nodes")
+
+    try:
+        if algorithm == "astar":
+            return astar(g, from_node, to_node)
+        return dijkstra(g, from_node, to_node)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+def _resolve_order_nodes(req: CreateOrderReq, db: Session) -> Tuple[str, str]:
+    """解析單店訂單 from/to 節點，保留向後相容格式。"""
     from_node = req.from_node
     to_node = req.to_node
 
     if req.store_id:
-        # 新格式：從 DB 查詢店家節點
         store = db.query(StoreDB).filter(StoreDB.id == req.store_id).first()
         if not store:
             raise HTTPException(status_code=404, detail=f"store_id '{req.store_id}' not found")
@@ -154,32 +190,75 @@ def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_use
     elif not to_node:
         to_node = HOME_NODE
 
-    g = GRAPH_STORE[req.map_id]
-    try:
-        if req.algorithm == "astar":
-            route, dist = astar(g, from_node, to_node)
-        else:
-            route, dist = dijkstra(g, from_node, to_node)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return from_node, to_node
+
+
+def _create_and_dispatch_order(
+    *,
+    db: Session,
+    map_id: str,
+    from_node: str,
+    to_node: str,
+    algorithm: str,
+    current_user_email: str,
+    store_name: str | None,
+    items: List[str] | None,
+    total_amount: float,
+):
+    """建立單筆 DB 訂單並觸發派單。"""
+    g = GRAPH_STORE[map_id]
+    route, dist = _calculate_route(g, algorithm, from_node, to_node)
     eta = estimate_eta_sec(route, dist)
+
     order_id = "O" + uuid.uuid4().hex[:8]
     new_order = OrderDB(
-        id=order_id, map_id=req.map_id, status="CREATED",
-        total_distance_cm=dist, eta_sec=eta, route=route,
-        user_email=current_user.email, store_name=req.store_name,
-        items=req.items or [], total_amount=req.total or 0.0
+        id=order_id,
+        map_id=map_id,
+        status="CREATED",
+        total_distance_cm=dist,
+        eta_sec=eta,
+        route=route,
+        user_email=current_user_email,
+        store_name=store_name,
+        items=items or [],
+        total_amount=total_amount,
     )
-    try:
-        db.add(new_order)
-        db.flush()  # 取得 DB 生成的值但不提交，讓 dispatch 也加入同一個 transaction
 
-        # 自動指派給可用小車（與建立訂單在同一個 transaction）
-        dispatch_order_to_robot(
-            order_id=order_id,
-            shop_node=from_node,
-            drop_node=to_node,
+    db.add(new_order)
+    db.flush()
+
+    dispatch_order_to_robot(
+        order_id=order_id,
+        shop_node=from_node,
+        drop_node=to_node,
+        db=db,
+    )
+
+    return new_order
+
+# API: Create Order
+@app.post("/orders", response_model=CreateOrderResp, tags=["訂單"])
+def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    if req.map_id not in GRAPH_STORE:
+        raise HTTPException(status_code=404, detail="map_id not loaded")
+
+    # 避免在舊端點混用多店 payload
+    if req.store_ids:
+        raise HTTPException(status_code=400, detail="Use /orders/multi for multi-store orders")
+
+    from_node, to_node = _resolve_order_nodes(req, db)
+
+    try:
+        new_order = _create_and_dispatch_order(
             db=db,
+            map_id=req.map_id,
+            from_node=from_node,
+            to_node=to_node,
+            algorithm=req.algorithm,
+            current_user_email=current_user.email,
+            store_name=req.store_name,
+            items=req.items,
+            total_amount=req.total or 0.0,
         )
 
         db.commit()
@@ -188,7 +267,94 @@ def create_order(req: CreateOrderReq, db: Session = Depends(get_db), current_use
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Order creation failed: {str(e)}")
 
-    return CreateOrderResp(order_id=order_id, map_id=req.map_id, route=route, total_distance_cm=dist, eta_sec=eta)
+    return CreateOrderResp(
+        order_id=new_order.id,
+        map_id=req.map_id,
+        route=new_order.route,
+        total_distance_cm=new_order.total_distance_cm,
+        eta_sec=new_order.eta_sec,
+        assigned_robot_id=new_order.assigned_robot_id,
+    )
+
+
+@app.post("/orders/multi", response_model=CreateMultiOrderResp, tags=["訂單"])
+def create_multi_store_order(
+    req: CreateMultiOrderReq,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """一次下多店訂單：每個店建立一筆實體訂單並加入同一批派送流程。"""
+    if req.map_id not in GRAPH_STORE:
+        raise HTTPException(status_code=404, detail="map_id not loaded")
+
+    # 去重後保留順序
+    dedup_store_ids: List[str] = list(dict.fromkeys(req.store_ids))
+    if not dedup_store_ids:
+        raise HTTPException(status_code=400, detail="store_ids cannot be empty")
+
+    to_node = req.to_node or HOME_NODE
+
+    stores = db.query(StoreDB).filter(StoreDB.id.in_(dedup_store_ids)).all()
+    store_by_id = {s.id: s for s in stores}
+    missing = [sid for sid in dedup_store_ids if sid not in store_by_id]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"store_ids not found: {missing}")
+
+    created_orders: List[OrderDB] = []
+    try:
+        split_total = float(req.total or 0) / len(dedup_store_ids)
+        for store_id in dedup_store_ids:
+            store = store_by_id[store_id]
+            store_items = []
+            if req.items_by_store and store_id in req.items_by_store:
+                store_items = req.items_by_store[store_id]
+            elif req.items:
+                store_items = req.items
+
+            order = _create_and_dispatch_order(
+                db=db,
+                map_id=req.map_id,
+                from_node=store.location_node,
+                to_node=to_node,
+                algorithm=req.algorithm,
+                current_user_email=current_user.email,
+                store_name=store.name,
+                items=store_items,
+                total_amount=split_total,
+            )
+            created_orders.append(order)
+
+        db.commit()
+        for order in created_orders:
+            db.refresh(order)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Multi-store order creation failed: {str(e)}")
+
+    summaries: List[SingleOrderSummary] = []
+    total_distance = 0.0
+    max_eta = 0.0
+    for store_id, order in zip(dedup_store_ids, created_orders):
+        summaries.append(
+            SingleOrderSummary(
+                order_id=order.id,
+                store_id=store_id,
+                route=order.route,
+                total_distance_cm=order.total_distance_cm,
+                eta_sec=order.eta_sec,
+                assigned_robot_id=order.assigned_robot_id,
+            )
+        )
+        total_distance += float(order.total_distance_cm or 0.0)
+        max_eta = max(max_eta, float(order.eta_sec or 0.0))
+
+    return CreateMultiOrderResp(
+        map_id=req.map_id,
+        order_ids=[o.id for o in created_orders],
+        orders=summaries,
+        total_distance_cm=total_distance,
+        max_eta_sec=max_eta,
+    )
 
 @app.get("/orders/{order_id}", tags=["訂單"])
 def get_order(order_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):

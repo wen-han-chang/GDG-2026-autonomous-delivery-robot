@@ -240,6 +240,10 @@ class MQTTBridge:
         """註冊小車 telemetry 回調"""
         self.robot_telemetry_callbacks[robot_id] = callback
 
+    def is_connected(self) -> bool:
+        """回傳 MQTT client 當前是否已連線。"""
+        return bool(getattr(self.client, "is_connected", False))
+
     def publish_plan(self, robot_id: str, plan_actions: list, plan_stops: list) -> bool:
         """發佈規劃結果給小車（topic: robot/{robot_id}/plan）"""
         topic = f"robot/{robot_id}/plan"
