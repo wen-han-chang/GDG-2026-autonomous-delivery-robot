@@ -102,6 +102,43 @@ docker compose ps
 
 預期會啟動 4 個服務：`db`、`mosquitto`、`backend`、`frontend`。
 
+接著請等待 backend 真正可用，再進行後續步驟。
+
+Windows PowerShell：
+
+```powershell
+$tries = 0
+do {
+    Start-Sleep -Seconds 2
+    $storesOk = (curl.exe -s -o NUL -w "%{http_code}" http://localhost:8001/stores)
+    $tries++
+} while ($storesOk -ne "200" -and $tries -lt 20)
+
+if ($storesOk -ne "200") {
+    Write-Host "stores 還沒 ready，先 restart backend 再等一次..."
+    docker compose restart backend
+
+    $tries = 0
+    do {
+        Start-Sleep -Seconds 2
+        $storesOk = (curl.exe -s -o NUL -w "%{http_code}" http://localhost:8001/stores)
+        $tries++
+    } while ($storesOk -ne "200" -and $tries -lt 20)
+}
+
+if ($storesOk -ne "200") {
+    Write-Error "backend 仍未 ready，請檢查：docker compose logs --tail 120 backend"
+} else {
+    Write-Host "backend ready (/stores=200)"
+}
+```
+
+說明：
+- 不要用固定等待 10 秒，請以 `/stores` 是否回 `200` 當作 backend ready 訊號。
+- 每次最多等待約 40 秒（20 次 x 2 秒），避免無限迴圈卡住需要手動 Ctrl+C。
+- 目前專案在 fresh DB 下，第一次 `up -d` 後常仍需要再 `restart backend` 一次，
+  這樣可以避免 PostgreSQL 尚未完全就緒，導致 backend 啟動期建表/seed 失敗。
+
 ### 4. 基本健康檢查
 
 ```bash
@@ -109,7 +146,7 @@ docker compose ps
 docker compose logs --tail 80 backend
 
 # API 文件
-curl.exe -s http://localhost:8001/docs > NUL
+curl.exe -s -o NUL -w "%{http_code}\n" http://localhost:8001/docs
 
 # 規劃狀態（若尚未 init 可能回 not found，屬正常）
 curl.exe -s "http://localhost:8001/planner/status?robot_id=R001"
@@ -117,6 +154,10 @@ curl.exe -s "http://localhost:8001/planner/status?robot_id=R001"
 # 店家清單（應回傳 S001~S009）
 curl.exe -s http://localhost:8001/stores
 ```
+
+預期：
+- `/docs` 會印出 `200`
+- `/stores` 會回傳 9 筆店家 JSON（S001~S009）
 
 若你使用 PowerShell，也可改用：
 
@@ -151,12 +192,63 @@ curl.exe -s http://localhost:8001/stores
 
 這個腳本會：
 - 清空 `orders`（可用 `-SkipOrderClear` 保留）
+- 若 `R001` 尚未存在，會自動呼叫 `/planner/init`
 - 將 `robot_states` 重置到指定節點
 - 重啟 backend 並印出 `planner/status`
+
+### 5.1 純演算法測試流程（尚未接真車）
+
+若你目前還沒有要接真車，只想：
+- 在前端下單
+- 看 tracking 頁面
+- 驗證併單 / ETA / 路徑 / 完成狀態
+
+請直接使用這個模式。
+
+步驟：
+
+1. 完成上面的 Docker 重建與 backend ready 檢查
+2. 執行：
+
+```powershell
+.\tools\reset-robot-state.ps1 -RobotId R001 -StartNode A
+```
+
+3. 確認小車狀態已存在：
+
+```powershell
+curl.exe -s "http://localhost:8001/planner/status?robot_id=R001"
+```
+
+4. 直接從前端下單並打開 tracking 頁面
+
+這個模式下：
+- 不需要真車
+- 不需要真實 telemetry
+- R001 會被視為 offline robot
+- 後端仍會派單給它，並自動啟動 simulation auto-clear
+- 因此前端仍可看到 tracking、規劃、狀態推進與完成
+
+判定依據：
+- robot 已 `init`
+- 但沒有 telemetry，所以 `online=false`
+- `SIMULATION_AUTO_CLEAR_ENABLED=true`（預設值）
+- 因此仍然 `can_dispatch=true`
+
+這是目前「只測演算法與前端 tracking」最適合的模式。
 
 ### 6. MQTT 訂閱失敗模擬（實機 MQTT 模式）
 
 若要模擬「小車訂閱失敗／broker 中斷」，請先把 backend 切到真實 MQTT：
+
+重要說明：
+- 不會因為「小車沒訂閱 topic」就自動切到模擬模式。
+- 模擬模式（auto-clear）會在「派單當下判定為離線」或「broker 連線不可用」時觸發。
+- 若 broker 正常、backend 可 publish，但小車端其實沒訂閱，後端無法從 MQTT publish 端直接知道，故不會自動切換。
+
+如果你現在手邊沒有真車，建議優先使用上面的「5.1 純演算法測試流程」。
+那已經足夠讓你在前端下單、看 tracking、驗證規劃與完成鎖定。
+只有在你要驗證「真實 MQTT broker 中斷」時，才需要做下面這組流程。
 
 在 `.env` 新增（或修改）
 

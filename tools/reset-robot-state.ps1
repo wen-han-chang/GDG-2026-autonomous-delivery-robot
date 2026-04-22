@@ -19,7 +19,14 @@ try {
     }
 
     $targetNode = $StartNode
-    if ($PreserveCurrentNode) {
+    $robotCountRaw = docker compose exec -T db psql -U robot_user -d robot_db -t -A -c "SELECT COUNT(*) FROM robot_states WHERE robot_id='$RobotId';"
+    $robotCount = (($robotCountRaw | Out-String).Trim() -as [int])
+
+    if ($robotCount -eq 0) {
+        Write-Host "[2/5] Robot $RobotId not found in DB, initializing via /planner/init at node $targetNode"
+        $body = @{ robot_id = $RobotId; start_node = $targetNode } | ConvertTo-Json -Compress
+        Invoke-RestMethod -Method Post -Uri "http://localhost:8001/planner/init" -ContentType "application/json" -Body $body | Out-Null
+    } elseif ($PreserveCurrentNode) {
         Write-Host "[2/5] Reading current node from DB for robot $RobotId"
         $currentNode = docker compose exec -T db psql -U robot_user -d robot_db -t -A -c "SELECT current_node FROM robot_states WHERE robot_id='$RobotId' LIMIT 1;"
         $currentNode = ($currentNode | Out-String).Trim()
@@ -27,6 +34,8 @@ try {
             throw "Robot $RobotId not found in robot_states."
         }
         $targetNode = $currentNode
+    } else {
+        Write-Host "[2/5] Robot $RobotId exists, using start node $targetNode"
     }
 
     if (-not $SkipOrderClear) {
