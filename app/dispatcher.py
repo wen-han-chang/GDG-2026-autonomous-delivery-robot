@@ -369,16 +369,17 @@ def dispatch_order_to_robot(
             f"Order {order_id} dispatched to {best_robot_id}, "
             f"replan cost={cost}, stops={stops}"
         )
-        # 在線模式：透過 MQTT 推送規劃結果給小車
-        if selected_online and bridge.is_connected():
+        # 真實 MQTT 模式：不管 telemetry 在線與否，直接推送計畫給小車
+        if bridge.is_connected() and not bridge.use_mock:
             try:
                 bridge.publish_plan(best_robot_id, actions, stops)
+                logger.info(f"MQTT plan published to {best_robot_id}")
             except Exception as e:
                 logger.warning(f"MQTT publish failed (non-fatal): {e}")
-        # 離線模式：啟動模擬取送流程，自動清 pending
+        # Mock/離線模式：啟動模擬取送流程，自動清 pending
         else:
             logger.info(
-                f"Robot {best_robot_id} offline at dispatch time; "
+                f"Robot {best_robot_id} offline/mock; "
                 f"starting simulation auto-clear for order {order_id}"
             )
             _start_simulation_auto_clear(best_robot_id, order_id, db)
