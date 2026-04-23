@@ -407,14 +407,8 @@ export default function Tracking() {
     const isCompleted = completionLocked || ownOrderCompleted
 
     const orderRouteForMap = useMemo(() => {
-        if (!orderRoute?.length) return []
-
-        const startNode = plannerStatus?.current_node
-        if (!startNode) return orderRoute
-        if (orderRoute[0] === startNode) return orderRoute
-
-        return [startNode, ...orderRoute]
-    }, [orderRoute, plannerStatus])
+        return orderRoute || []
+    }, [orderRoute])
 
     const orderWaypoints = useMemo(() => {
         return (orderRouteForMap || []).filter((n) => n !== ROUTE_BREAK)
