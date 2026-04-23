@@ -9,6 +9,7 @@ class Node(BaseModel):
     id: str
     x: float
     y: float
+    apriltag_id: Optional[int] = None
 
 class Edge(BaseModel):
     from_: str = Field(alias="from")

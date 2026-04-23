@@ -2,15 +2,15 @@
   "map_id": "campus_demo",
   "unit": "cm",
   "nodes": [
-    { "id": "A", "x": 0,   "y": 60  },
-    { "id": "B", "x": 75,  "y": 60  },
-    { "id": "C", "x": 150, "y": 60  },
-    { "id": "D", "x": 0,   "y": 135 },
-    { "id": "E", "x": 75,  "y": 135 },
-    { "id": "F", "x": 150, "y": 135 },
-    { "id": "G", "x": 0,   "y": 210 },
-    { "id": "H", "x": 75,  "y": 210 },
-    { "id": "I", "x": 150, "y": 210 }
+    { "id": "A", "x": 0,   "y": 60,  "apriltag_id": 0 },
+    { "id": "B", "x": 75,  "y": 60,  "apriltag_id": 1 },
+    { "id": "C", "x": 150, "y": 60,  "apriltag_id": 2 },
+    { "id": "D", "x": 0,   "y": 135, "apriltag_id": 3 },
+    { "id": "E", "x": 75,  "y": 135, "apriltag_id": 4 },
+    { "id": "F", "x": 150, "y": 135, "apriltag_id": 5 },
+    { "id": "G", "x": 0,   "y": 210, "apriltag_id": 6 },
+    { "id": "H", "x": 75,  "y": 210, "apriltag_id": 7 },
+    { "id": "I", "x": 150, "y": 210, "apriltag_id": 8 }
   ],
   "edges": [
     { "from": "A", "to": "B", "bidirectional": true },

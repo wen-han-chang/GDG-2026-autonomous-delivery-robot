@@ -184,6 +184,39 @@ class GlobalPlannerState:
             robot.next_deliver_k = k + 1
             return True
 
+    def clear_delivered_orders(self, robot_id: str) -> bool:
+        """
+        Remove all delivered orders and renumber remaining ones from 1.
+
+        After clearing:
+          - all_orders   → only pending/picked orders, renumbered 1..N
+          - picked_mask  → rebuilt to reflect new indices
+          - next_deliver_k → reset to 1 (restart delivery sequence)
+        """
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot:
+                return False
+
+            # Keep non-delivered orders in original order
+            pending = [
+                (k, o)
+                for k, o in sorted(robot.all_orders.items())
+                if o.status != "delivered"
+            ]
+
+            new_orders: Dict[int, Order] = {}
+            new_picked_mask = 0
+            for new_k, (_, order) in enumerate(pending, start=1):
+                new_orders[new_k] = order
+                if order.status == "picked":
+                    new_picked_mask |= 1 << (new_k - 1)
+
+            robot.all_orders = new_orders
+            robot.picked_mask = new_picked_mask
+            robot.next_deliver_k = 1  # restart from order 1 after clearing
+            return True
+
     def update_plan(
         self,
         robot_id: str,

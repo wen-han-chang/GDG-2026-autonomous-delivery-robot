@@ -489,6 +489,12 @@ async def mark_order_delivered(robot_id: str = Query(...), order_k: int = Query(
     """
     標記訂單已送
 
+    同時觸發：
+    1. DB 訂單狀態更新為 DELIVERED
+    2. WebSocket 廣播
+    3. 自動清除已送訂單（重新編號剩餘訂單）
+    4. 若有剩餘訂單，自動重新規劃並透過 MQTT 推送
+
     :param robot_id: 小車 ID
     :param order_k: 訂單編號（1-indexed）
     """
@@ -505,6 +511,21 @@ async def mark_order_delivered(robot_id: str = Query(...), order_k: int = Query(
     if order and order.order_id:
         update_order_in_db(order.order_id, "DELIVERED")
         await broadcast({"type": "order_status", "order_id": order.order_id, "status": "DELIVERED", "robot_id": robot_id})
+
+    # Auto-clear 已送訂單並重新規劃剩餘訂單
+    state.clear_delivered_orders(robot_id)
+    updated_robot = state.get_robot(robot_id)
+    if updated_robot and updated_robot.get_pending_count() > 0:
+        from ..dispatcher import _run_replan
+        from ..mqtt_bridge import get_mqtt_bridge
+        ok, actions, stops, cost = _run_replan(robot_id)
+        if ok:
+            try:
+                bridge = get_mqtt_bridge()
+                bridge.publish_plan(robot_id, actions, stops)
+                logger.info(f"mark-delivered: replan published for {robot_id}, cost={cost}")
+            except Exception as e:
+                logger.warning(f"mark-delivered: MQTT publish failed: {e}")
 
     logger.info(f"Robot {robot_id} delivered order {order_k}")
 
