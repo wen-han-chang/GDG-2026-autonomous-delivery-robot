@@ -226,15 +226,38 @@ async def init_robot(req: InitRobotRequest, db: Session = Depends(get_db)):
     :param start_node: 起始節點（預設 "A"）
     """
     state = get_global_state()
+
+    # Clear all non-delivered DB orders for this robot before reinit
+    try:
+        db.query(OrderDB).filter(
+            OrderDB.assigned_robot_id == req.robot_id,
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception:
+        db.rollback()
+
     robot = state.add_robot(req.robot_id, req.start_node)
     _persist_robot_state(robot, db)
 
-    logger.info(f"Robot {req.robot_id} initialized at node {req.start_node}")
+    # Reset plan executor state
+    from ..plan_executor import get_plan_executor
+    executor = get_plan_executor()
+    with executor._lock:
+        executor.full_path = []
+        executor.stops = []
+        executor.stop_actions = []
+        executor.stop_pointer = 0
+        executor.current_step = 0
+        executor.prev_node = None
+        executor.current_node = req.start_node
+        executor._active = False
+
+    logger.info(f"Robot {req.robot_id} reset and initialized at node {req.start_node}")
 
     return {
         "robot_id": req.robot_id,
         "start_node": req.start_node,
-        "message": "Robot initialized",
+        "message": "Robot reset and initialized",
     }
 
 

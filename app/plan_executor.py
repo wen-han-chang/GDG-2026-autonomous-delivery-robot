@@ -109,6 +109,13 @@ class PlanExecutor:
         )
         self._publish("car/cmd", {"cmd": "forward", "speed": 100})
 
+    def on_weight_event(self, topic: str, payload: dict):
+        """Called when car/weight_event is received (weight sensor confirmed)."""
+        event = payload.get("event", "")
+        if event == "loaded":
+            logger.info("PlanExecutor: weight loaded → sending next direction")
+            self._send_next_direction()
+
     def on_node_update(self, topic: str, payload: dict):
         """Called when car/node_id is received (AprilTag confirmed arrival)."""
         raw = payload.get("tag_id", payload.get("node", ""))
@@ -117,12 +124,18 @@ class PlanExecutor:
             return
 
         with self._lock:
+            robot_id = self.robot_id
             self.prev_node = self.current_node
             self.current_node = node
             full_path = list(self.full_path)
             active = self._active
             stops = list(self.stops)
             stop_pointer = self.stop_pointer
+
+        # Sync position to GlobalPlannerState so replan uses correct start node
+        if robot_id:
+            from .planner_state import get_global_state
+            get_global_state().update_robot_location(robot_id, node)
 
         if not active or not full_path:
             return
@@ -164,8 +177,7 @@ class PlanExecutor:
         if action_type == "PICKUP" and order_k is not None and robot_id:
             logger.info(f"PlanExecutor: PICKUP order {order_k} at {node}")
             self._auto_mark_picked(robot_id, order_k)
-            # Car waits for weight sensor; resumes when next node_id arrives
-            self._publish("car/cmd", {"cmd": "wait_weight", "speed": 0})
+            self._send_next_direction()
 
         elif action_type == "DELIVER" and order_k is not None and robot_id:
             logger.info(f"PlanExecutor: DELIVER order {order_k} at {node}")

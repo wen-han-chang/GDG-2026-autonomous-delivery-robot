@@ -228,6 +228,7 @@ class MQTTBridge:
         executor = get_plan_executor()
         self.client.subscribe("robot/+/plan", executor.on_new_plan)
         self.client.subscribe("car/node_id", executor.on_node_update)
+        self.client.subscribe("car/weight_event", executor.on_weight_event)
 
         logger.info("MQTT bridge started")
         return True
