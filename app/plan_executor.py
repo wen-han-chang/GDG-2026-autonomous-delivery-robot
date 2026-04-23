@@ -241,9 +241,17 @@ class PlanExecutor:
             self._trigger_replan(robot_id)
         else:
             logger.info(f"PlanExecutor: no more orders for {robot_id}, stopping")
+            state.reset_robot_after_completion(robot_id)
             with self._lock:
                 self._active = False
+                self.full_path = []
+                self.stops = []
+                self.stop_actions = []
             self._publish("car/cmd", {"cmd": "stop", "speed": 0})
+            _schedule_ws_broadcast({
+                "type": "plan_complete",
+                "robot_id": robot_id,
+            })
 
     def _trigger_replan(self, robot_id: str):
         """Run replan and publish new plan via MQTT (called from MQTT thread)."""
