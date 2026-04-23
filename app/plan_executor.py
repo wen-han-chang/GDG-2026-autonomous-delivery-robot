@@ -347,11 +347,13 @@ class PlanExecutor:
         hx, hy = cx - px, cy - py   # heading vector
         dx, dy = nx - cx, ny - cy   # desired direction
 
+        # Map uses screen coords (y increases downward), so cross product sign is flipped
+        # vs standard math coords: positive cross = clockwise = right turn
         cross = hx * dy - hy * dx
         if cross > 0:
-            return "left"
-        elif cross < 0:
             return "right"
+        elif cross < 0:
+            return "left"
         else:
             return "forward" if (hx * dx + hy * dy) >= 0 else "backward"
 
