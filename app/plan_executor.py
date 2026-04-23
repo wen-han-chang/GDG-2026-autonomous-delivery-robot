@@ -178,13 +178,19 @@ class PlanExecutor:
 
         if action_type == "PICKUP" and order_k is not None and robot_id:
             logger.info(f"PlanExecutor: PICKUP order {order_k} at {node}")
-            self._auto_mark_picked(robot_id, order_k)
+            try:
+                self._auto_mark_picked(robot_id, order_k)
+            except Exception as e:
+                logger.warning(f"PlanExecutor: mark_picked error (ignored): {e}")
             self._send_next_direction()
 
         elif action_type == "DELIVER" and order_k is not None and robot_id:
             logger.info(f"PlanExecutor: DELIVER order {order_k} at {node}")
-            self._auto_mark_delivered(robot_id, order_k)
-            # _auto_mark_delivered decides: replan or stop
+            try:
+                self._auto_mark_delivered(robot_id, order_k)
+            except Exception as e:
+                logger.warning(f"PlanExecutor: mark_delivered error: {e}")
+                self._send_next_direction()
 
         else:
             self._send_next_direction()
