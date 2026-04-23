@@ -348,19 +348,25 @@ export default function Tracking() {
     }, [activeOrder?.is_multi_store, activeOrder?.batch_order_ids, orderId, plannerStatus?.pending_count])
 
     const orderRoute = useMemo(() => {
+        let base
         if (batchOrderRoutes.length === 0) {
-            return activeOrder?.route || []
+            base = activeOrder?.route || []
+        } else {
+            const merged = []
+            batchOrderRoutes.forEach((o, idx) => {
+                if (idx > 0) merged.push(ROUTE_BREAK)
+                merged.push(...o.route)
+            })
+            base = merged
         }
 
-        const merged = []
-        batchOrderRoutes.forEach((o, idx) => {
-            if (idx > 0) {
-                merged.push(ROUTE_BREAK)
-            }
-            merged.push(...o.route)
-        })
-        return merged
-    }, [activeOrder, batchOrderRoutes])
+        // Prepend robot's current node so display shows full journey (e.g. A→B→E)
+        const startNode = plannerStatus?.current_node
+        if (startNode && base.length > 0 && base[0] !== startNode && base[0] !== ROUTE_BREAK) {
+            return [startNode, ...base]
+        }
+        return base
+    }, [activeOrder, batchOrderRoutes, plannerStatus])
 
     const robotGlobalWaypoints = useMemo(() => {
         const stops = plannerStatus?.plan_stops || []
