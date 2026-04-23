@@ -196,8 +196,14 @@ class MQTTBridge:
 
     def start(self) -> bool:
         """啟動 MQTT 橋接"""
-        if not self.client.connect():
-            logger.error("Failed to connect to MQTT broker")
+        import time
+        for attempt in range(8):
+            if self.client.connect():
+                break
+            logger.warning(f"MQTT connect failed (attempt {attempt + 1}/8), retrying in 3s...")
+            time.sleep(3)
+        else:
+            logger.error("Failed to connect to MQTT broker after 8 attempts")
             return False
 
         def on_telemetry(topic: str, payload: dict):
