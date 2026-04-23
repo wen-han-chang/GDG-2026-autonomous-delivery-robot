@@ -101,6 +101,8 @@ class PlanExecutor:
             self.stop_actions = stop_actions
             self.stop_pointer = 0
             self.current_step = 0
+            self.prev_node = None
+            self.current_node = start_node  # init so first turn uses correct heading
             self._active = True
 
         logger.info(
