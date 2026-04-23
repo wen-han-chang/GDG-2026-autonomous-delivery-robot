@@ -46,7 +46,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: ${FRONTEND_VITE_API_URL:-http://3.27.165.128:8001}
+        VITE_API_URL: ${FRONTEND_VITE_API_URL:-https://gdg-2026-autonomous-delivery-robot.duckdns.org}
     container_name: robot-frontend
     restart: always
     ports:
