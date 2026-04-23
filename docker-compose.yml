@@ -36,7 +36,6 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://robot_user:robot_pass@db:5432/robot_db
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://3.27.165.128}
     depends_on:
       - db
       - mosquitto
