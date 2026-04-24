@@ -27,7 +27,6 @@ from collections import defaultdict
 import cv2
 import numpy as np
 import pupil_apriltags as apriltag
-import networkx as nx
 import paho.mqtt.client as mqtt
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse
@@ -44,40 +43,17 @@ log = logging.getLogger(__name__)
 # ─── Config (從環境變數讀取，方便容器化) ──────────────────────
 BROKER        = os.getenv("MQTT_HOST", "localhost")
 PORT          = int(os.getenv("MQTT_PORT", "1883"))
-DEST_NODE     = int(os.getenv("DEST_NODE", "5"))
-DEFAULT_SPEED = int(os.getenv("DEFAULT_SPEED", "180"))
 MAX_CAPTURES  = int(os.getenv("MAX_CAPTURES", "1"))   # 連拍張數 (燒錄 VGA 韌體後改回 3)
 
 TOPIC_CAM_IP      = "car/cam_ip"
 TOPIC_AT_NODE     = "car/at_node"
 TOPIC_CAPTURE_REQ = "car/capture_req"
 TOPIC_NODE_ID     = "car/node_id"
-TOPIC_CMD         = "car/cmd"
 TOPIC_WEIGHT      = "car/weight_event"
-
-# ─── 地圖定義 ─────────────────────────────────────────────────
-#   [0] ── [1] ── [2] ── [3]
-#                  |
-#                 [4] ── [5]
-GRAPH = nx.DiGraph()
-GRAPH.add_edges_from([
-    (0, 1, {"heading": 90}),
-    (1, 0, {"heading": 270}),
-    (1, 2, {"heading": 90}),
-    (2, 1, {"heading": 270}),
-    (2, 3, {"heading": 90}),
-    (3, 2, {"heading": 270}),
-    (2, 4, {"heading": 180}),
-    (4, 2, {"heading": 0}),
-    (4, 5, {"heading": 90}),
-    (5, 4, {"heading": 270}),
-])
 
 # ─── Runtime State ────────────────────────────────────────────
 _state_lock = threading.Lock()
 car_state = {
-    "heading":        90,
-    "current_node":   -1,
     "capture_count":  0,     # 已發出的 capture_req 次數
     "collected":      [],    # 收集的 jpeg bytes，拍完再一起辨識
 }
@@ -141,7 +117,6 @@ async def upload_image(request: Request):
 
         # 收滿 → 取出所有圖片，重置狀態
         frames = car_state["collected"][:]
-        heading = car_state["heading"]
         car_state["collected"] = []
         car_state["capture_count"] = 0
 
@@ -156,63 +131,15 @@ async def upload_image(request: Request):
 
     if best_tag_id is None:
         log.warning(f"[Batch] {len(frames)} 張全部辨識失敗")
-        return JSONResponse({"tag_id": None, "cmd": None, "status": "no_tag"})
+        return JSONResponse({"tag_id": None, "status": "no_tag"})
 
     log.info(f"[Batch] 最佳結果 tag_id={best_tag_id}, margin={best_margin:.2f}")
-    car_state["current_node"] = best_tag_id
 
-    cmd_payload = None
     if mqtt_client and mqtt_client.is_connected():
         mqtt_client.publish(TOPIC_NODE_ID, json.dumps({"tag_id": best_tag_id}))
-        cmd_payload = build_command(best_tag_id, heading)
-        mqtt_client.publish(TOPIC_CMD, json.dumps(cmd_payload))
-        log.info(f"[MQTT] Published node_id={best_tag_id}, cmd={cmd_payload}")
+        log.info(f"[MQTT] Published node_id={best_tag_id}")
 
-    return JSONResponse({"tag_id": best_tag_id, "cmd": cmd_payload, "status": "done"})
-
-
-# ─── Route Planning ───────────────────────────────────────────
-def plan_route(current: int, destination: int) -> list[int]:
-    try:
-        return nx.shortest_path(GRAPH, current, destination)
-    except (nx.NetworkXNoPath, nx.NodeNotFound):
-        return []
-
-
-def get_turn_cmd(cur_node: int, next_node: int, heading: int) -> str:
-    edge = GRAPH.get_edge_data(cur_node, next_node)
-    if not edge:
-        return "forward"
-    target = edge.get("heading", heading)
-    diff = (target - heading + 360) % 360
-    if diff == 0:
-        return "forward"
-    elif diff == 90:
-        return "right"
-    elif diff == 270:
-        return "left"
-    elif diff == 180:
-        return "left"  # 掉頭用左轉
-    return "right"
-
-
-def build_command(tag_id: int, heading: int) -> dict:
-    path = plan_route(tag_id, DEST_NODE)
-    if not path:
-        return {"cmd": "stop", "speed": 0}
-    if len(path) == 1:
-        return {"cmd": "wait_weight", "speed": 0}
-
-    next_node = path[1]
-    direction = get_turn_cmd(tag_id, next_node, heading)
-
-    edge = GRAPH.get_edge_data(tag_id, next_node)
-    if edge:
-        with _state_lock:
-            car_state["heading"] = edge.get("heading", heading)
-
-    log.info(f"[Route] {tag_id}→{next_node}: {direction}, heading={heading}→{car_state['heading']}, path={path}")
-    return {"cmd": direction, "speed": DEFAULT_SPEED}
+    return JSONResponse({"tag_id": best_tag_id, "status": "done"})
 
 
 # ─── AprilTag Detection ───────────────────────────────────────
