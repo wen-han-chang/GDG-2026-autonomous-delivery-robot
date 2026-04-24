@@ -75,18 +75,11 @@ bool initCamera() {
   cfg.pin_reset     = CAM_PIN_RESET;
   cfg.xclk_freq_hz  = 20000000;
   cfg.pixel_format  = PIXFORMAT_JPEG;
-  cfg.frame_size    = FRAMESIZE_VGA;   // 640x480，夠辨識 AprilTag 且傳輸快
+  cfg.frame_size    = FRAMESIZE_VGA;
   cfg.grab_mode     = CAMERA_GRAB_WHEN_EMPTY;
-  cfg.fb_location   = CAMERA_FB_IN_PSRAM;
-  cfg.jpeg_quality  = 20;
+  cfg.fb_location   = CAMERA_FB_IN_DRAM;  // 避免 GPIO4 (flash) 因 PSRAM 共用腳位一直亮
+  cfg.jpeg_quality  = 12;
   cfg.fb_count      = 1;
-  if (psramFound()) {
-    cfg.jpeg_quality = 20;
-    cfg.fb_count     = 2;
-    cfg.grab_mode    = CAMERA_GRAB_LATEST;
-  } else {
-    cfg.fb_location  = CAMERA_FB_IN_DRAM;
-  }
 
   esp_err_t err = esp_camera_init(&cfg);
   if (err != ESP_OK) {
