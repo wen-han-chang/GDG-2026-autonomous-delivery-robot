@@ -109,7 +109,21 @@ class PlanExecutor:
             f"PlanExecutor: new plan robot={robot_id} "
             f"path={full_path} stops={stops} actions={stop_actions}"
         )
-        self._publish("car/cmd", {"cmd": "forward", "speed": 100})
+
+        # If the robot is already sitting at the first stop (e.g. PICKUP at start
+        # node), handle it immediately — on_node_update will never fire for that
+        # node because the car hasn't moved yet.
+        if start_node and stops and start_node == stops[0]:
+            with self._lock:
+                action_meta = (
+                    self.stop_actions[0]
+                    if self.stop_actions
+                    else {"type": "NONE", "order_k": None}
+                )
+                self.stop_pointer = 1
+            self._handle_stop_action(start_node, action_meta)
+        else:
+            self._publish("car/cmd", {"cmd": "forward", "speed": 100})
 
     def on_weight_event(self, topic: str, payload: dict):
         """Called when car/weight_event is received (weight sensor confirmed)."""
