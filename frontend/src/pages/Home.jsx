@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import StoreCard from '../components/StoreCard'
+import { useRobotStatus } from '../hooks/useRobotStatus'
 
 export default function Home() {
     const [stores, setStores] = useState([])
     const [loading, setLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState('全部')
+    const { status, isIdle } = useRobotStatus('R001')
 
     const categories = ['全部', '餐廳', '飲料', '便利商店']
 
@@ -42,6 +44,18 @@ export default function Home() {
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">
+            {status && (
+                <div className={`flex items-center gap-3 mb-6 px-4 py-3 rounded-xl text-sm font-medium ${
+                    isIdle
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-orange-50 text-orange-700 border border-orange-200'
+                }`}>
+                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isIdle ? 'bg-green-500' : 'bg-orange-500 animate-pulse'}`} />
+                    <span>{isIdle ? '送餐車待命中，可以下單' : `送餐車配送中（${status.pending_count} 筆訂單待完成）`}</span>
+                    <span className="ml-auto text-xs opacity-60">目前位置：{status.current_node ?? '—'}</span>
+                </div>
+            )}
+
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-800">探索店家</h1>
                 <p className="text-gray-500 mt-2">選擇您喜愛的店家，開始點餐</p>
