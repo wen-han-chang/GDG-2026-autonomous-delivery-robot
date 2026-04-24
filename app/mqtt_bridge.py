@@ -236,13 +236,7 @@ class MQTTBridge:
         self.client.subscribe("car/node_id", executor.on_node_update)
         self.client.subscribe("car/weight_event", executor.on_weight_event)
 
-        def on_car_status(topic: str, payload: dict):
-            if payload.get("state") == "at_node":
-                node = payload.get("node", -1)
-                if node != -1:
-                    executor.on_node_update(topic, {"tag_id": node})
-
-        self.client.subscribe("car/status", on_car_status)
+        self.client.subscribe("car/status", lambda t, p: None)
 
         logger.info("MQTT bridge started")
         return True
