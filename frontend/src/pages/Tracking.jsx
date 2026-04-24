@@ -563,10 +563,11 @@ export default function Tracking() {
             return rows
         }
 
-        if (!orderExpandedRoute.length) return []
-
-        const pickup = orderExpandedRoute[0]
-        const drop = orderExpandedRoute[orderExpandedRoute.length - 1]
+        // Use activeOrder.route for shop/drop nodes — orderExpandedRoute[0] is the
+        // robot's current position (prepended for map display), not the pickup node.
+        const rawRoute = Array.isArray(activeOrder?.route) ? activeOrder.route : []
+        const pickup = rawRoute.length > 0 ? rawRoute[0] : null
+        const drop = rawRoute.length > 0 ? rawRoute[rawRoute.length - 1] : null
         const rows = []
         if (pickup) rows.push(`取餐：${pickup}`)
         if (drop && drop !== pickup) rows.push(`送達：${drop}`)
