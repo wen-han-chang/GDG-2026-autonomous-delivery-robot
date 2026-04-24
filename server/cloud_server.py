@@ -44,7 +44,6 @@ log = logging.getLogger(__name__)
 BROKER        = os.getenv("MQTT_HOST", "localhost")
 PORT          = int(os.getenv("MQTT_PORT", "1883"))
 MAX_CAPTURES  = int(os.getenv("MAX_CAPTURES", "1"))   # 連拍張數 (燒錄 VGA 韌體後改回 3)
-CAPTURE_REQ_DELAY_S = float(os.getenv("CAPTURE_REQ_DELAY_S", "1.0"))
 
 TOPIC_CAM_IP      = "car/cam_ip"
 TOPIC_AT_NODE     = "car/at_node"
@@ -187,19 +186,8 @@ def on_message(client, userdata, msg):
             # 重置批次狀態，開始新一輪連拍
             car_state["capture_count"] = 1
             car_state["collected"]     = []
-        def delayed_capture_req():
-            if client.is_connected():
-                client.publish(TOPIC_CAPTURE_REQ, "1")
-                log.info(
-                    f"[MQTT] Sent capture_req 1/{MAX_CAPTURES} "
-                    f"after {CAPTURE_REQ_DELAY_S:.1f}s delay"
-                )
-
-        threading.Timer(CAPTURE_REQ_DELAY_S, delayed_capture_req).start()
-        log.info(
-            f"[MQTT] Scheduled capture_req 1/{MAX_CAPTURES} "
-            f"in {CAPTURE_REQ_DELAY_S:.1f}s"
-        )
+        client.publish(TOPIC_CAPTURE_REQ, "1")
+        log.info(f"[MQTT] Sent capture_req 1/{MAX_CAPTURES}")
 
     elif topic == TOPIC_WEIGHT:
         try:
