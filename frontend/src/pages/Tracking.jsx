@@ -175,6 +175,19 @@ function readBatchMeta(orderId) {
     }
 }
 
+function readStoredOrder(orderId) {
+    if (!orderId) return null
+    try {
+        const raw = sessionStorage.getItem(`tracking_order_${orderId}`)
+        if (!raw) return null
+        const parsed = JSON.parse(raw)
+        if (!parsed || parsed.order_id !== orderId) return null
+        return parsed
+    } catch {
+        return null
+    }
+}
+
 export default function Tracking() {
     const { orderId } = useParams()
     const [mapData, setMapData] = useState(null)
@@ -187,6 +200,7 @@ export default function Tracking() {
     const websocketRobotId = order?.assigned_robot_id || storedOrder?.assigned_robot_id || null
     const { robotState, connected, error } = useWebSocket(orderId, websocketRobotId)
     const batchMeta = useMemo(() => readBatchMeta(orderId), [orderId])
+    const persistedOrder = useMemo(() => readStoredOrder(orderId), [orderId])
 
     // Load order data（首次 + 輪詢，確保自動清單後狀態會更新）
     useEffect(() => {
@@ -199,8 +213,11 @@ export default function Tracking() {
                 const data = await getOrder(orderId, token)
                 if (cancelled) return
                 setOrderNotFound(false)
+                if (data?.order_id) {
+                    sessionStorage.setItem(`tracking_order_${data.order_id}`, JSON.stringify(data))
+                }
                 setOrder((prev) => {
-                    const merged = mergeOrderData(data, prev || storedOrder, orderId)
+                    const merged = mergeOrderData(data, prev || storedOrder || persistedOrder, orderId)
                     if (!batchMeta) return merged
                     return {
                         ...merged,
@@ -212,6 +229,15 @@ export default function Tracking() {
                 const notFound = msg.includes('Order not found')
                 if (notFound) {
                     setOrderNotFound(true)
+                } else if (persistedOrder) {
+                    setOrder((prev) => {
+                        const fallback = prev || storedOrder || persistedOrder
+                        if (!batchMeta) return fallback
+                        return {
+                            ...fallback,
+                            ...batchMeta,
+                        }
+                    })
                 }
                 console.error('Failed to load order:', err)
             }
@@ -224,18 +250,20 @@ export default function Tracking() {
             cancelled = true
             clearInterval(timer)
         }
-    }, [orderId, storedOrder, batchMeta])
+    }, [orderId, storedOrder, persistedOrder, batchMeta])
 
     // 使用 storedOrder 作為預設值
     const activeOrder = useMemo(() => {
-        const base = order || (storedOrder?.order_id === orderId ? storedOrder : null)
+        const base = order
+            || (storedOrder?.order_id === orderId ? storedOrder : null)
+            || persistedOrder
         if (!base) return null
         if (!batchMeta) return base
         return {
             ...base,
             ...batchMeta,
         }
-    }, [order, storedOrder, orderId, batchMeta])
+    }, [order, storedOrder, persistedOrder, orderId, batchMeta])
 
     // Load map data（九宮格節點與邊）
     useEffect(() => {

@@ -92,6 +92,10 @@ export default function Checkout() {
                 order = await createOrder('campus_demo', storeId, selectedNode, orderInfo, token)
 
                 if (order?.order_id) {
+                    sessionStorage.setItem(
+                        `tracking_order_${order.order_id}`,
+                        JSON.stringify(order)
+                    )
                     sessionStorage.removeItem(`tracking_batch_${order.order_id}`)
                 }
             }
