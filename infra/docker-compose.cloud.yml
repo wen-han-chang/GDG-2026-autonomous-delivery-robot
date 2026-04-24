@@ -1,0 +1,29 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: robot-mosquitto
+    restart: always
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+
+  apriltag-server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile.apriltag
+    container_name: robot-apriltag
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - DEST_NODE=5
+      - DEFAULT_SPEED=180
+    depends_on:
+      - mosquitto
+
+volumes:
+  mosquitto_data:

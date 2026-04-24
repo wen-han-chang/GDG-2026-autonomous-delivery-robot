@@ -1,0 +1,15 @@
+#pragma once
+
+// ===== WiFi =====
+const char* WIFI_SSID = "your_wifi_ssid";
+const char* WIFI_PASS = "your_wifi_password";
+
+// ===== MQTT =====
+const char* MQTT_HOST      = "your_mqtt_broker_ip";  // 本地: 電腦IP / AWS: ECS Mosquitto IP
+const int   MQTT_PORT      = 1883;
+const char* MQTT_CLIENT_ID = "esp32-cam";
+
+// ===== 後端 Upload URL =====
+// 本地測試: "http://192.168.x.x:8000/upload-image"
+// AWS ECS:  "http://<ALB_DNS>/upload-image"
+const char* BACKEND_UPLOAD_URL = "http://your_backend_ip:8000/upload-image";

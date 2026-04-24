@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+# OpenCV 需要這些系統套件
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 先裝依賴（利用 Docker layer cache）
+COPY requirements.txt requirements-cloud.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-cloud.txt
+
+COPY cloud_server.py .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "cloud_server:app", "--host", "0.0.0.0", "--port", "8000"]

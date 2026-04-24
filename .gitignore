@@ -1,55 +1,5 @@
-# ======================
-# Python
-# ======================
+firmware_cam/esp32_cam_apriltag/config_cam.h
+server/venv/
+server/captures/
 __pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-.pytest_cache/
-
-# Virtual environment (DO NOT COMMIT)
-.venv/
-venv/
-ENV/
-env/
-
-# ======================
-# Environment variables
-# ======================
-.env
-
-# ======================
-# FastAPI / Uvicorn
-# ======================
-*.log
-
-# ======================
-# OS files
-# ======================
-.DS_Store
-Thumbs.db
-
-# ======================
-# IDE / Editor
-# ======================
-.vscode/
-.idea/
-
-# ======================
-# Node / Android (future)
-# ======================
-node_modules/
-build/
-dist/
-
-# ======================
-# ESP32 / PlatformIO
-# ======================
-.p
-gemini.md
-progress_report.md
-knowledge_base.md
-frontend.md
-CLAUDE.md
-.claude
+*.pyc
