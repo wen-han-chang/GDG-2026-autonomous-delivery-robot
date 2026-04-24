@@ -22,6 +22,8 @@ services:
       - MQTT_PORT=1883
       - DEST_NODE=5
       - DEFAULT_SPEED=180
+    volumes:
+      - ../server/captures:/captures
     depends_on:
       - mosquitto
 

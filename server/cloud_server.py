@@ -30,7 +30,8 @@ import pupil_apriltags as apriltag
 import networkx as nx
 import paho.mqtt.client as mqtt
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.requests import ClientDisconnect
 
 # ─── Logging ──────────────────────────────────────────────────
@@ -85,6 +86,10 @@ mqtt_client: mqtt.Client | None = None
 # ─── AprilTag Detector ────────────────────────────────────────
 detector = apriltag.Detector(families="tag36h11")
 
+# ─── Captures Directory ───────────────────────────────────────
+CAPTURES_DIR = os.getenv("CAPTURES_DIR", "/captures")
+os.makedirs(CAPTURES_DIR, exist_ok=True)
+
 # ─── FastAPI App ──────────────────────────────────────────────
 app = FastAPI(title="GDG Robot Cloud Server")
 
@@ -92,6 +97,20 @@ app = FastAPI(title="GDG Robot Cloud Server")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/captures")
+def list_captures():
+    files = sorted(os.listdir(CAPTURES_DIR), reverse=True)
+    return {"files": files, "count": len(files)}
+
+
+@app.get("/captures/{filename}")
+def download_capture(filename: str):
+    path = os.path.join(CAPTURES_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, media_type="image/jpeg", filename=filename)
 
 
 @app.post("/upload-image")
@@ -204,15 +223,17 @@ def detect_apriltag(jpeg_bytes: bytes) -> tuple[int | None, float]:
     if frame is None:
         return None, -1.0
 
-    # Debug: 儲存圖片
-    debug_path = f"/tmp/debug_{int(time.time())}.jpg"
-    cv2.imwrite(debug_path, frame)
-
     results = detector.detect(frame)
+
+    ts = int(time.time() * 1000)
     if not results:
+        path = os.path.join(CAPTURES_DIR, f"fail_{ts}.jpg")
+        cv2.imwrite(path, frame)
         return None, -1.0
 
     best = max(results, key=lambda r: r.decision_margin)
+    path = os.path.join(CAPTURES_DIR, f"ok_tag{best.tag_id}_{ts}.jpg")
+    cv2.imwrite(path, frame)
     log.info(f"[Debug] Detected tag_id={best.tag_id}, margin={best.decision_margin:.2f}")
     return best.tag_id, best.decision_margin
 
