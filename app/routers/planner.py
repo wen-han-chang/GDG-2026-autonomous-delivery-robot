@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict
 from datetime import datetime
 import logging
+import os
 
 from sqlalchemy.orm import Session
 
@@ -28,11 +29,17 @@ from ..state import GRAPH_STORE, MAP_STORE
 from ..models import MapData
 from ..ws import update_order_in_db, broadcast
 from ..database import get_db
-from ..sql_models import RobotStateDB
+from ..sql_models import RobotStateDB, OrderDB
+from ..mqtt_bridge import get_mqtt_bridge
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/planner", tags=["planner"])
+
+# 小車預設起點（首次初始化用；後續規劃以 robot.current_node 為準）
+DEFAULT_ROBOT_START_NODE = os.getenv("PLAN_START_NODE", "A")
+ROBOT_ONLINE_TTL_SEC = int(os.getenv("ROBOT_ONLINE_TTL_SEC", "15"))
+SIMULATION_AUTO_CLEAR_ENABLED = os.getenv("SIMULATION_AUTO_CLEAR_ENABLED", "true").lower() == "true"
 
 
 # ==================== Pydantic Models ====================
@@ -69,6 +76,19 @@ class RobotStatusResponse(BaseModel):
     last_plan_cost: Optional[int]
     plan_actions: List[str]
     plan_stops: List[str]
+
+
+class RobotHealthItem(BaseModel):
+    robot_id: str
+    online: bool
+    last_telemetry_time: Optional[datetime]
+    mqtt_connected: bool
+    can_dispatch: bool
+
+
+class RobotHealthResponse(BaseModel):
+    robots: List[RobotHealthItem]
+    can_dispatch_any: bool
 
 
 class UpdateLocationRequest(BaseModel):
@@ -134,6 +154,28 @@ def build_algorithm_graph() -> MapGraph:
     return mp
 
 
+def get_robot_start_node(robot: RobotState, node_mapping: Dict[str, int]) -> str:
+    """取得規劃起點：優先使用小車目前節點，無效時 fallback 到預設起點。"""
+    start_node = robot.current_node or DEFAULT_ROBOT_START_NODE
+    if start_node in node_mapping:
+        return start_node
+
+    logger.warning(
+        f"Robot {robot.robot_id} current_node '{start_node}' is invalid; "
+        f"fallback to '{DEFAULT_ROBOT_START_NODE}'"
+    )
+    if DEFAULT_ROBOT_START_NODE in node_mapping:
+        return DEFAULT_ROBOT_START_NODE
+
+    raise HTTPException(status_code=500, detail=f"Invalid default start node: {DEFAULT_ROBOT_START_NODE}")
+
+
+def _is_robot_online(robot: RobotState) -> bool:
+    if robot.last_telemetry_at is None:
+        return False
+    return (datetime.now() - robot.last_telemetry_at).total_seconds() <= ROBOT_ONLINE_TTL_SEC
+
+
 # ==================== DB 持久化輔助函數 ====================
 
 
@@ -165,6 +207,13 @@ def _persist_robot_state(robot: RobotState, db: Session):
         db.rollback()
 
 
+def _cleanup_delivered_orders_for_robot(db: Session, robot_id: str):
+    db.query(OrderDB).filter(
+        OrderDB.assigned_robot_id == robot_id,
+        OrderDB.status == "DELIVERED",
+    ).delete(synchronize_session=False)
+
+
 # ==================== API Endpoints ====================
 
 
@@ -190,7 +239,7 @@ async def init_robot(req: InitRobotRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/status")
-async def get_robot_status(robot_id: str = Query(...)):
+async def get_robot_status(robot_id: str = Query(...), db: Session = Depends(get_db)):
     """
     取得小車的當前規劃狀態
 
@@ -202,16 +251,78 @@ async def get_robot_status(robot_id: str = Query(...)):
     if robot is None:
         raise HTTPException(status_code=404, detail=f"Robot {robot_id} not found")
 
+    pending_count = robot.get_pending_count()
+
+    # 與 DB 對帳：若該車沒有未完成訂單，強制清空殘留規劃並重置索引
+    try:
+        active_orders_count = (
+            db.query(OrderDB)
+            .filter(
+                OrderDB.assigned_robot_id == robot_id,
+                OrderDB.status != "DELIVERED",
+            )
+            .count()
+        )
+    except Exception as e:
+        logger.warning(f"status db reconcile failed for {robot_id}: {e}")
+        active_orders_count = pending_count
+    should_cleanup = (
+        active_orders_count == 0
+        and (
+            pending_count == 0
+            or robot.next_deliver_k != 1
+            or robot.picked_mask != 0
+            or robot.plan_actions
+            or robot.plan_stops
+            or (robot.last_plan_cost or 0) != 0
+        )
+    )
+
+    if should_cleanup:
+        _cleanup_delivered_orders_for_robot(db, robot_id)
+        state.reset_robot_after_completion(robot_id)
+        robot = state.get_robot(robot_id)
+        _persist_robot_state(robot, db)
+        pending_count = robot.get_pending_count()
+
     return RobotStatusResponse(
         robot_id=robot.robot_id,
         current_node=robot.current_node,
         next_deliver_k=robot.next_deliver_k,
         picked_mask=robot.picked_mask,
         orders_count=len(robot.all_orders),
-        pending_count=robot.get_pending_count(),
+        pending_count=pending_count,
         last_plan_cost=robot.last_plan_cost,
         plan_actions=robot.plan_actions,
         plan_stops=robot.plan_stops,
+    )
+
+
+@router.get("/health", response_model=RobotHealthResponse)
+async def get_robot_health(robot_id: Optional[str] = Query(default=None)):
+    """回傳小車連線健康狀態（online/offline、最近 telemetry、是否可派單）。"""
+    state = get_global_state()
+    bridge = get_mqtt_bridge()
+    mqtt_connected = bridge.is_connected()
+
+    robots = []
+    for rid, robot in state.robots.items():
+        if robot_id and rid != robot_id:
+            continue
+
+        online = _is_robot_online(robot)
+        can_dispatch = (online and mqtt_connected) or (not online and SIMULATION_AUTO_CLEAR_ENABLED)
+        robots.append(RobotHealthItem(
+            robot_id=rid,
+            online=online,
+            last_telemetry_time=robot.last_telemetry_at,
+            mqtt_connected=mqtt_connected,
+            can_dispatch=can_dispatch,
+        ))
+
+    return RobotHealthResponse(
+        robots=robots,
+        can_dispatch_any=any(r.can_dispatch for r in robots),
     )
 
 
@@ -243,9 +354,11 @@ async def replan(req: ReplanRequest, db: Session = Depends(get_db)) -> ReplanRes
     orders_list = robot.get_pending_orders()
     if not orders_list:
         logger.warning(f"Robot {req.robot_id} has no pending orders")
+        state.update_plan(req.robot_id, [], [], 0)
+        _persist_robot_state(robot, db)
         return ReplanResponse(
             robot_id=req.robot_id,
-            success=False,
+            success=True,
             total_cost=0,
             actions=[],
             stops=[],
@@ -257,20 +370,29 @@ async def replan(req: ReplanRequest, db: Session = Depends(get_db)) -> ReplanRes
         mp = build_algorithm_graph()
         node_mapping = get_node_id_mapping()
 
+        # 針對 pending 子集合重建連續索引，避免 next_deliver_k / picked_mask 錯位
+        pending_sorted = sorted(orders_list, key=lambda x: x[0])
+        remap = {old_k: i + 1 for i, (old_k, _o) in enumerate(pending_sorted)}
+
         # 轉換 orders 為演算法輸入格式
         algo_orders = []
-        for k, order in orders_list:
+        remapped_mask = 0
+        for old_k, order in pending_sorted:
             shop_id = node_mapping[order.shop_node]
             drop_id = node_mapping[order.drop_node]
             algo_orders.append((shop_id, drop_id))
+            if robot.picked_mask & (1 << (old_k - 1)):
+                remapped_k = remap[old_k]
+                remapped_mask |= 1 << (remapped_k - 1)
 
-        # 起始節點
-        start_id = node_mapping[robot.current_node]
+        # 起始節點使用機器人目前位置（首次初始化通常為 A）
+        start_node = get_robot_start_node(robot, node_mapping)
+        start_id = node_mapping[start_node]
 
         # 執行規劃
         planner = Planner(mp, start_id, algo_orders)
         ok, actions, stops, cost = planner.solve_from_state(
-            robot.next_deliver_k, robot.picked_mask
+            1, remapped_mask
         )
 
         if not ok:

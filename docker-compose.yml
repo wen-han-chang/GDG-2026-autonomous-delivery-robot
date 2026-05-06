@@ -36,7 +36,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://robot_user:robot_pass@db:5432/robot_db
-      - ALLOWED_ORIGINS=http://localhost,http://3.27.165.128,https://gdg-2026-autonomous-delivery-robot.duckdns.org
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://3.27.165.128,https://gdg-2026-autonomous-delivery-robot.duckdns.org}
     depends_on:
       - db
       - mosquitto
@@ -46,12 +46,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod # 務必確認你在 frontend 資料夾下新增了這個檔案
+      args:
+        VITE_API_URL: ${FRONTEND_VITE_API_URL:-http://3.27.165.128:8001}
     container_name: robot-frontend
     restart: always
     ports:
       - "80:80"
-    environment:
-      - VITE_API_URL=http://3.27.165.128:8001 # 本地測試用，部署時需重新 build
     depends_on:
       - backend
 

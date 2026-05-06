@@ -5,9 +5,9 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-# --- 在這裡插入兩行，把後端網址寫死 ---
-ARG VITE_API_URL=http://3.27.165.128:8001
-ENV VITE_API_URL=http://3.27.165.128:8001
+# 前端打 API 的目標位址（可由 docker compose build args 覆蓋）
+ARG VITE_API_URL=http://localhost:8001
+ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
 

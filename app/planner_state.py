@@ -47,6 +47,7 @@ class RobotState:
     last_plan_cost: Optional[int] = None  # cm
     plan_actions: List[str] = field(default_factory=list)
     plan_stops: List[str] = field(default_factory=list)
+    last_telemetry_at: Optional[datetime] = None
 
     def to_dict(self) -> dict:
         """序列化為 dict"""
@@ -60,6 +61,7 @@ class RobotState:
             "plan_actions": self.plan_actions,
             "plan_stops": self.plan_stops,
             "last_replan_time": self.last_replan_time.isoformat() if self.last_replan_time else None,
+            "last_telemetry_at": self.last_telemetry_at.isoformat() if self.last_telemetry_at else None,
         }
 
     def get_pending_orders(self) -> List[Tuple[int, Order]]:
@@ -135,7 +137,19 @@ class GlobalPlannerState:
             if not robot:
                 return False
             robot.current_node = node
+            robot.last_telemetry_at = datetime.now()
             return True
+
+    def find_order_k_by_order_id(self, robot_id: str, order_id: str) -> Optional[int]:
+        """依 DB order_id 查詢該機器人內部訂單索引 k（1-indexed）。"""
+        robot = self.get_robot(robot_id)
+        if not robot:
+            return None
+
+        for k, order in robot.all_orders.items():
+            if order.order_id == order_id:
+                return k
+        return None
 
     def mark_order_picked(self, robot_id: str, k: int) -> bool:
         """標記訂單已取"""
@@ -186,6 +200,22 @@ class GlobalPlannerState:
             robot.plan_actions = plan_actions
             robot.plan_stops = plan_stops
             robot.last_plan_cost = plan_cost
+            robot.last_replan_time = datetime.now()
+            return True
+
+    def reset_robot_after_completion(self, robot_id: str) -> bool:
+        """全部訂單完成後重置執行狀態（保留 current_node）。"""
+        with self._lock:
+            robot = self.get_robot(robot_id)
+            if not robot:
+                return False
+
+            robot.next_deliver_k = 1
+            robot.picked_mask = 0
+            robot.all_orders.clear()
+            robot.plan_actions = []
+            robot.plan_stops = []
+            robot.last_plan_cost = 0
             robot.last_replan_time = datetime.now()
             return True
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
 import { useOrderStore } from '../stores/orderStore'
 import { useAuthStore } from '../stores/authStore'
-import { createOrder } from '../api/orders'
+import { createOrder, createMultiStoreOrder } from '../api/orders'
 
 export default function Checkout() {
     const [nodes, setNodes] = useState([])
@@ -40,16 +40,62 @@ export default function Checkout() {
         setError('')
 
         try {
+            const uniqueStoreIds = [...new Set(items.map(item => item.store_id).filter(Boolean))]
+            const itemsByStore = {}
+            for (const item of items) {
+                if (!item.store_id) continue
+                if (!itemsByStore[item.store_id]) {
+                    itemsByStore[item.store_id] = []
+                }
+                itemsByStore[item.store_id].push(`${item.name} x${item.quantity}`)
+            }
+
             // 組裝訂單資訊
             const orderInfo = {
                 storeName: items[0]?.store_name || '未知店家',
                 items: items.map(item => `${item.name} x${item.quantity}`),
+                itemsByStore,
                 total: getTotal(),
             }
             const token = useAuthStore.getState().token
 
-            const storeId = items[0]?.store_id || null
-            const order = await createOrder('campus_demo', storeId, selectedNode, orderInfo, token)
+            let order
+            if (uniqueStoreIds.length > 1) {
+                const multiOrder = await createMultiStoreOrder('campus_demo', uniqueStoreIds, selectedNode, orderInfo, token)
+
+                // 追蹤頁目前以單一 order_id 為入口，先帶第一筆；其餘可由訂單清單頁擴充。
+                const first = multiOrder.orders?.[0]
+                order = {
+                    order_id: first?.order_id,
+                    map_id: multiOrder.map_id,
+                    route: first?.route || [],
+                    total_distance_cm: first?.total_distance_cm || 0,
+                    eta_sec: first?.eta_sec || 0,
+                    assigned_robot_id: first?.assigned_robot_id || null,
+                    batch_order_ids: multiOrder.order_ids || [],
+                    batch_orders: multiOrder.orders || [],
+                    is_multi_store: true,
+                }
+
+                if (order?.order_id) {
+                    sessionStorage.setItem(
+                        `tracking_batch_${order.order_id}`,
+                        JSON.stringify({
+                            is_multi_store: true,
+                            batch_order_ids: multiOrder.order_ids || [],
+                            batch_orders: multiOrder.orders || [],
+                        })
+                    )
+                }
+            } else {
+                const storeId = uniqueStoreIds[0] || null
+                order = await createOrder('campus_demo', storeId, selectedNode, orderInfo, token)
+
+                if (order?.order_id) {
+                    sessionStorage.removeItem(`tracking_batch_${order.order_id}`)
+                }
+            }
+
             setOrder(order)
             setSubmitted(true)
             clearCart()

@@ -52,6 +52,46 @@ class TestOrders:
         }, headers=auth_header)
         assert response.status_code == 200
 
+    def test_create_order_rejects_multi_payload(self, client, auth_header):
+        """舊單店端點不得混用多店 payload"""
+        response = client.post("/orders", json={
+            "map_id": "campus_demo",
+            "store_ids": ["S001", "S002"],
+            "to_node": "A"
+        }, headers=auth_header)
+        assert response.status_code == 400
+        assert "Use /orders/multi" in response.json()["detail"]
+
+    def test_create_multi_order_success(self, client, auth_header):
+        """測試多店一次下單"""
+        response = client.post("/orders/multi", json={
+            "map_id": "campus_demo",
+            "store_ids": ["S001", "S002"],
+            "to_node": "A",
+            "items_by_store": {
+                "S001": ["招牌便當 x1"],
+                "S002": ["紅茶 x2"]
+            },
+            "total": 130
+        }, headers=auth_header)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["map_id"] == "campus_demo"
+        assert len(data["order_ids"]) == 2
+        assert len(data["orders"]) == 2
+        assert data["total_distance_cm"] > 0
+        assert data["max_eta_sec"] > 0
+
+    def test_create_multi_order_store_not_found(self, client, auth_header):
+        """測試多店下單含不存在店家"""
+        response = client.post("/orders/multi", json={
+            "map_id": "campus_demo",
+            "store_ids": ["S001", "S999"],
+            "to_node": "A"
+        }, headers=auth_header)
+        assert response.status_code == 404
+        assert "store_ids not found" in response.json()["detail"]
+
     def test_get_order_success(self, client, auth_header):
         """測試取得訂單"""
         # 先建立訂單

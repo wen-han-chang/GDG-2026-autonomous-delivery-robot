@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Literal
+from typing import Dict, List, Optional, Literal
 from datetime import datetime
 
 # ==========================================
@@ -26,6 +26,8 @@ class CreateOrderReq(BaseModel):
     map_id: str
     # 新格式：提供 store_id，系統自動推導 from_node（店家節點）與 to_node（HOME）
     store_id: Optional[str] = None
+    # 多店格式：一次下單多個店家
+    store_ids: Optional[List[str]] = None
     # 舊格式（向後相容）：直接指定節點
     from_node: Optional[str] = None
     to_node: Optional[str] = None
@@ -42,6 +44,37 @@ class CreateOrderResp(BaseModel):
     route: List[str]
     total_distance_cm: float
     eta_sec: float
+    assigned_robot_id: Optional[str] = None
+
+
+class SingleOrderSummary(BaseModel):
+    order_id: str
+    store_id: str
+    route: List[str]
+    total_distance_cm: float
+    eta_sec: float
+    assigned_robot_id: Optional[str] = None
+
+
+class CreateMultiOrderReq(BaseModel):
+    map_id: str
+    store_ids: List[str] = Field(min_length=1)
+    to_node: Optional[str] = None
+    algorithm: Literal["dijkstra", "astar"] = "dijkstra"
+    # 購物車資訊（可選）
+    store_name: Optional[str] = None
+    items: Optional[List[str]] = None
+    items_by_store: Optional[Dict[str, List[str]]] = None
+    total: Optional[int] = None
+    user_email: Optional[str] = None
+
+
+class CreateMultiOrderResp(BaseModel):
+    map_id: str
+    order_ids: List[str]
+    orders: List[SingleOrderSummary]
+    total_distance_cm: float
+    max_eta_sec: float
 
 class Telemetry(BaseModel):
     robot_id: str
