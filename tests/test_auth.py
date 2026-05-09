@@ -15,7 +15,8 @@ class TestRegister:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "token" in data
+        assert "token" not in data  # token 改存 httpOnly cookie
+        assert response.cookies.get("access_token") is not None
         assert data["user"]["email"] == "newuser@test.com"
         assert data["user"]["name"] == "新用戶"
 
@@ -67,7 +68,8 @@ class TestLogin:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "token" in data
+        assert "token" not in data  # token 改存 httpOnly cookie
+        assert response.cookies.get("access_token") is not None
 
     def test_login_wrong_password(self, client):
         """測試錯誤密碼"""

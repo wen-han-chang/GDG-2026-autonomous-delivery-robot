@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, JSON, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Float, JSON, ForeignKey, Text
 from .database import Base
 from datetime import datetime
 
@@ -12,6 +12,7 @@ class User(Base):
     name = Column(String) # 補齊註冊需要的 name 欄位
     created_at = Column(DateTime, default=datetime.utcnow)
     avatar = Column(String, nullable=True)  # base64 圖片資料
+    refresh_token = Column(Text, nullable=True)
 
 # 2. 店家模型
 class StoreDB(Base):

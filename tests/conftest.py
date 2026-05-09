@@ -60,18 +60,17 @@ def client():
 
 @pytest.fixture(scope="function")
 def auth_header(client):
-    """註冊測試使用者並回傳 Authorization header"""
+    """註冊測試使用者並登入（cookie 存於 TestClient jar，不再需要 Bearer header）"""
     client.post("/auth/register", json={
         "email": "order_test@test.com",
         "password": "testpass123",
         "name": "OrderTester"
     })
-    login_resp = client.post("/auth/login", json={
+    client.post("/auth/login", json={
         "email": "order_test@test.com",
         "password": "testpass123"
     })
-    token = login_resp.json()["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {}
 
 
 @pytest.fixture(scope="function")

@@ -16,9 +16,11 @@ if config.config_file_name is not None:
 
 # Set the database URL from an environment variable
 import os
+from dotenv import load_dotenv
+load_dotenv()
 db_url = os.environ.get('DATABASE_URL')
 if db_url:
-    config.set_main_option('sqlalchemy.url', db_url)
+    config.set_main_option('sqlalchemy.url', db_url.strip('"').strip("'"))
 
 
 # add your model's MetaData object here

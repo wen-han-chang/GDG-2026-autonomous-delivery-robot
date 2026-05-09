@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from jose import JWTError, jwt
 from typing import List
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.routers.auth import SECRET_KEY, ALGORITHM, verify_password, get_password_hash
+from app.routers.auth import SECRET_KEY, ALGORITHM, verify_password, get_password_hash, ACCESS_COOKIE_NAME
 from app.models import UserResponse, UserUpdate, OrderHistoryItem
 from app.database import get_db
 from app.sql_models import User, OrderDB
@@ -16,24 +15,26 @@ class AvatarUpdate(BaseModel):
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-# --- JWT 驗證依賴 ---
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(request: Request, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="無法驗證憑證",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    token = request.cookies.get(ACCESS_COOKIE_NAME)
+    if not token:
+        raise credentials_exception
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "access":
+            raise credentials_exception
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    # 從資料庫查詢使用者
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception

@@ -115,7 +115,7 @@ class TestOrders:
 
     def test_get_order_forbidden(self, client, auth_header):
         """測試無法查看他人訂單"""
-        # 用第一個使用者建立訂單
+        # 用第一個使用者建立訂單（cookie jar 已有 user1 的 token）
         create_response = client.post("/orders", json={
             "map_id": "campus_demo",
             "from_node": "A",
@@ -123,21 +123,19 @@ class TestOrders:
         }, headers=auth_header)
         order_id = create_response.json()["order_id"]
 
-        # 註冊第二個使用者
+        # 登入第二個使用者（cookie jar 更新為 user2 的 token）
         client.post("/auth/register", json={
             "email": "other@test.com",
             "password": "testpass123",
             "name": "Other"
         })
-        login_resp = client.post("/auth/login", json={
+        client.post("/auth/login", json={
             "email": "other@test.com",
             "password": "testpass123"
         })
-        other_token = login_resp.json()["token"]
-        other_header = {"Authorization": f"Bearer {other_token}"}
 
         # 用第二個使用者查詢第一個使用者的訂單
-        response = client.get(f"/orders/{order_id}", headers=other_header)
+        response = client.get(f"/orders/{order_id}")
         assert response.status_code == 403
 
 
