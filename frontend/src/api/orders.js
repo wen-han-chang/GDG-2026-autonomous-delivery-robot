@@ -6,23 +6,30 @@ export async function createOrder(mapId, storeId, toNode, orderInfo = {}, token)
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const res = await fetch(`${API_BASE}/orders`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            map_id: mapId,
-            store_id: storeId,
-            to_node: toNode,
-            store_name: orderInfo.storeName || null,
-            items: orderInfo.items || null,
-            total: orderInfo.total || null,
+    try {
+        const res = await fetch(`${API_BASE}/orders`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                map_id: mapId,
+                store_id: storeId,
+                to_node: toNode,
+                store_name: orderInfo.storeName || null,
+                items: orderInfo.items || null,
+                total: orderInfo.total || null,
+            })
         })
-    })
-    if (!res.ok) {
-        const error = await res.json().catch(() => ({}))
-        throw new Error(error.detail || `HTTP ${res.status}`)
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}))
+            throw new Error(error.detail || `HTTP ${res.status}`)
+        }
+        return res.json()
+    } catch (err) {
+        if (err instanceof TypeError) {
+            throw new Error('網路連線失敗，請檢查網路狀態')
+        }
+        throw err
     }
-    return res.json()
 }
 
 export async function createMultiStoreOrder(mapId, storeIds, toNode, orderInfo = {}, token) {
@@ -31,23 +38,30 @@ export async function createMultiStoreOrder(mapId, storeIds, toNode, orderInfo =
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const res = await fetch(`${API_BASE}/orders/multi`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            map_id: mapId,
-            store_ids: storeIds,
-            to_node: toNode,
-            items: orderInfo.items || null,
-            items_by_store: orderInfo.itemsByStore || null,
-            total: orderInfo.total || null,
+    try {
+        const res = await fetch(`${API_BASE}/orders/multi`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                map_id: mapId,
+                store_ids: storeIds,
+                to_node: toNode,
+                items: orderInfo.items || null,
+                items_by_store: orderInfo.itemsByStore || null,
+                total: orderInfo.total || null,
+            })
         })
-    })
-    if (!res.ok) {
-        const error = await res.json().catch(() => ({}))
-        throw new Error(error.detail || `HTTP ${res.status}`)
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}))
+            throw new Error(error.detail || `HTTP ${res.status}`)
+        }
+        return res.json()
+    } catch (err) {
+        if (err instanceof TypeError) {
+            throw new Error('網路連線失敗，請檢查網路狀態')
+        }
+        throw err
     }
-    return res.json()
 }
 
 export async function getOrder(orderId, token) {
@@ -56,10 +70,17 @@ export async function getOrder(orderId, token) {
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const res = await fetch(`${API_BASE}/orders/${orderId}`, { headers })
-    if (!res.ok) {
-        const error = await res.json().catch(() => ({}))
-        throw new Error(error.detail || `HTTP ${res.status}`)
+    try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, { headers })
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}))
+            throw new Error(error.detail || `HTTP ${res.status}`)
+        }
+        return res.json()
+    } catch (err) {
+        if (err instanceof TypeError) {
+            throw new Error('網路連線失敗，請檢查網路狀態')
+        }
+        throw err
     }
-    return res.json()
 }
