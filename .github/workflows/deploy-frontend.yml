@@ -23,4 +23,4 @@ jobs:
             cd ~/GDG-2026-autonomous-delivery-robot
             git fetch origin main
             git reset --hard origin/main
-            docker compose up -d --build frontend
+            docker compose up -d --build --no-deps frontend
