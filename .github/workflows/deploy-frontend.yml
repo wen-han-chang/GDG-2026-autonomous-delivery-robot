@@ -21,5 +21,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/GDG-2026-autonomous-delivery-robot
-            git pull origin main
-            docker-compose up -d --build frontend
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose up -d --build frontend
