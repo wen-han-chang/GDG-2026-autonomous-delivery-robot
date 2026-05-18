@@ -47,11 +47,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod # 務必確認你在 frontend 資料夾下新增了這個檔案
       args:
-        VITE_API_URL: ${FRONTEND_VITE_API_URL:-http://3.27.165.128:8001}
+        # 留空 → 前端走相對路徑，由 nginx 同源 proxy 到後端（HTTPS 下 cookie 才能正常運作）
+        VITE_API_URL: ${FRONTEND_VITE_API_URL:-}
     container_name: robot-frontend
     restart: always
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
 

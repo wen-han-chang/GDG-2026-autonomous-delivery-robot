@@ -5,8 +5,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-# 前端打 API 的目標位址（可由 docker compose build args 覆蓋）
-ARG VITE_API_URL=http://localhost:8001
+# 前端打 API 的目標位址，留空 → 走相對路徑由 nginx 同源 proxy（可由 docker compose build args 覆蓋）
+ARG VITE_API_URL=
 ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
