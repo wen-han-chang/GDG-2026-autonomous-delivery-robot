@@ -125,14 +125,11 @@ export const useAuthStore = create(
                 }
             },
 
-            // 從後端重新抓取最新使用者資料
+            // 從後端重新抓取最新使用者資料（auth 走 httpOnly cookie，同源自動帶上）
             fetchMe: async () => {
-                const token = get().token
-                if (!token) return
+                if (!get().isLoggedIn) return
                 try {
-                    const res = await fetch(`${API_BASE}/users/me`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
+                    const res = await fetch(`${API_BASE}/users/me`)
                     if (res.ok) {
                         const user = await res.json()
                         set({ user })
@@ -144,13 +141,9 @@ export const useAuthStore = create(
 
             // 取得訂單歷史
             fetchOrderHistory: async () => {
-                const token = get().token
-                if (!token) return
-
+                if (!get().isLoggedIn) return
                 try {
-                    const res = await fetch(`${API_BASE}/users/me/orders`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
+                    const res = await fetch(`${API_BASE}/users/me/orders`)
                     if (res.ok) {
                         const orders = await res.json()
                         set({ orderHistory: orders })
