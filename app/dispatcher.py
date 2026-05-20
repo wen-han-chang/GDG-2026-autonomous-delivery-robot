@@ -165,7 +165,7 @@ def _simulation_worker(robot_id: str, wake_event: threading.Event):
                 return
 
             if robot.get_pending_count() == 0:
-                _delete_delivered_orders_for_robot(robot_id)
+                # 不刪 DELIVERED 訂單，讓使用者能在訂單記錄看到歷史
                 state.reset_robot_after_completion(robot_id)
                 _persist_robot_state_snapshot(robot_id)
                 return
