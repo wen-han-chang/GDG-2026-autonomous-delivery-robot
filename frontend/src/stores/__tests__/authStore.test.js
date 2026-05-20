@@ -124,7 +124,7 @@ describe('updatePassword', () => {
 
 describe('fetchOrderHistory', () => {
     it('sets orderHistory on success', async () => {
-        useAuthStore.setState({ token: mockToken })
+        useAuthStore.setState({ isLoggedIn: true })
         const orders = [{ id: 'O1' }, { id: 'O2' }]
         vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: true,
